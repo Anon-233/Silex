@@ -82,11 +82,16 @@ for (name, pixels) in variants {
             ctx.clip(to: symbolRect, mask: maskCG)
 
             // Draw diagonal gradient
-            let gradient = NSGradient(colors: [
-                NSColor(calibratedRed: 0.15, green: 0.50, blue: 0.90, alpha: 1),
-                NSColor(calibratedRed: 0.70, green: 0.25, blue: 0.80, alpha: 1),
-                NSColor(calibratedRed: 0.90, green: 0.15, blue: 0.50, alpha: 1)
-            ])
+            let gradient = NSGradient(
+                colors: [
+                    NSColor(calibratedRed: 1.00, green: 0.56, blue: 0.80, alpha: 1),
+                    NSColor(calibratedRed: 0.97, green: 0.98, blue: 1.00, alpha: 1),
+                    NSColor(calibratedRed: 0.56, green: 0.84, blue: 1.00, alpha: 1),
+                    NSColor(calibratedRed: 0.30, green: 0.64, blue: 1.00, alpha: 1)
+                ],
+                atLocations: [0.0, 0.35, 0.65, 1.0],
+                colorSpace: .sRGB
+            )
             gradient?.draw(
                 from: NSPoint(x: symbolRect.minX, y: symbolRect.maxY),
                 to: NSPoint(x: symbolRect.maxX, y: symbolRect.minY),
