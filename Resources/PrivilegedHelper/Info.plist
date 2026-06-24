@@ -7,9 +7,9 @@
     <key>CFBundleDisplayName</key>
     <string>Silex SMART Service</string>
     <key>CFBundleExecutable</key>
-    <string>SilexSMARTService</string>
+    <string>SilexDaemon</string>
     <key>CFBundleIdentifier</key>
-    <string>com.anon233.Silex.SMARTService</string>
+    <string>com.anon233.Silex.Daemon</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleLocalizations</key>

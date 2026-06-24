@@ -11,7 +11,7 @@ let package = Package(
     products: [
         .library(name: "SilexCore", targets: ["SilexCore"]),
         .executable(name: "Silex", targets: ["SilexApp"]),
-        .executable(name: "SilexSMARTService", targets: ["SilexSMARTService"]),
+        .executable(name: "SilexDaemon", targets: ["SilexDaemon"]),
         .executable(name: "SilexTestRunner", targets: ["SilexTestRunner"])
     ],
     targets: [
@@ -31,9 +31,9 @@ let package = Package(
             resources: [.process("Resources")]
         ),
         .executableTarget(
-            name: "SilexSMARTService",
+            name: "SilexDaemon",
             dependencies: ["SilexCore"],
-            path: "Sources/SilexSMARTService"
+            path: "Sources/SilexDaemon"
         ),
         .executableTarget(
             name: "SilexTestRunner",

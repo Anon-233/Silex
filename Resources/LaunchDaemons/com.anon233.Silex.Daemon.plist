@@ -3,14 +3,14 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.anon233.Silex.SMARTService</string>
+    <string>com.anon233.Silex.Daemon</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents/MacOS/SilexSMARTService</string>
+        <string>/Library/PrivilegedHelperTools/SilexDaemon.app/Contents/MacOS/SilexDaemon</string>
     </array>
     <key>MachServices</key>
     <dict>
-        <key>com.anon233.Silex.SMARTService</key>
+        <key>com.anon233.Silex.Daemon</key>
         <true/>
     </dict>
     <key>UserName</key>

@@ -45,9 +45,9 @@ done
 COMPONENT="$EXPANDED/Silex-component.pkg"
 PAYLOAD="$COMPONENT/Payload"
 PAYLOAD_APP="$PAYLOAD/Applications/Silex.app"
-PLIST="$PAYLOAD/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
-HELPER_BUNDLE="$PAYLOAD/Library/PrivilegedHelperTools/SilexSMARTService.app"
-HELPER="$HELPER_BUNDLE/Contents/MacOS/SilexSMARTService"
+PLIST="$PAYLOAD/Library/LaunchDaemons/com.anon233.Silex.Daemon.plist"
+HELPER_BUNDLE="$PAYLOAD/Library/PrivilegedHelperTools/SilexDaemon.app"
+HELPER="$HELPER_BUNDLE/Contents/MacOS/SilexDaemon"
 HELPER_INFO="$HELPER_BUNDLE/Contents/Info.plist"
 SMARTCTL="$PAYLOAD/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
 
@@ -73,7 +73,7 @@ PAYLOAD_APP_COUNT=$(
 )
 PAYLOAD_HELPER_COUNT=$(
   /usr/bin/find "$PAYLOAD/Library/PrivilegedHelperTools" \
-    -mindepth 1 -maxdepth 1 -type d -name 'SilexSMARTService.app' -print |
+    -mindepth 1 -maxdepth 1 -type d -name 'SilexDaemon.app' -print |
     /usr/bin/wc -l |
     /usr/bin/tr -d ' '
 )
@@ -82,7 +82,7 @@ if [[ "$PAYLOAD_APP_COUNT" != "1" || "$PAYLOAD_HELPER_COUNT" != "1" ]]; then
   exit 65
 fi
 if [[ -e \
-  "$PAYLOAD/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService" \
+  "$PAYLOAD/Library/PrivilegedHelperTools/com.anon233.Silex.Daemon" \
 ]]; then
   echo "package contains obsolete bare helper" >&2
   exit 65
@@ -129,7 +129,7 @@ done
   "$PLIST"
 if [[ "$(
   /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$HELPER_INFO"
-)" != "com.anon233.Silex.SMARTService" ]]; then
+)" != "com.anon233.Silex.Daemon" ]]; then
   echo "helper bundle identifier is incorrect" >&2
   exit 65
 fi

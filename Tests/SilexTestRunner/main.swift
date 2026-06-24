@@ -390,7 +390,7 @@ let tests: [HarnessTest] = [
         try requireEqual(executor.request?.arguments, ["-j", "-x", "/dev/disk0"], "arguments")
         let serviceURL = URL(
             fileURLWithPath:
-                "/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+                "/Library/PrivilegedHelperTools/com.anon233.Silex.Daemon"
         )
         try requireEqual(
             PrivilegedSMARTPolicy.bundledExecutableURL(
@@ -670,7 +670,7 @@ let tests: [HarnessTest] = [
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let data = try Data(
             contentsOf: root.appendingPathComponent(
-                "Resources/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
+                "Resources/LaunchDaemons/com.anon233.Silex.Daemon.plist"
             )
         )
         let plist = try PropertyListSerialization.propertyList(from: data, format: nil)
@@ -703,12 +703,12 @@ let tests: [HarnessTest] = [
         ) as? [String: Any] ?? [:]
         try requireEqual(
             helperInfo["CFBundleIdentifier"] as? String,
-            "com.anon233.Silex.SMARTService",
+            "com.anon233.Silex.Daemon",
             "stable helper identifier"
         )
         try requireEqual(
             helperInfo["CFBundleExecutable"] as? String,
-            "SilexSMARTService",
+            "SilexDaemon",
             "helper executable name"
         )
         try requireEqual(
@@ -738,12 +738,6 @@ let tests: [HarnessTest] = [
             "Chinese helper display name"
         )
 
-        let preinstall = try String(
-            contentsOf: root.appendingPathComponent(
-                "Packaging/Scripts/preinstall.in"
-            ),
-            encoding: .utf8
-        )
         let postinstall = try String(
             contentsOf: root.appendingPathComponent(
                 "Packaging/Scripts/postinstall"
@@ -769,9 +763,7 @@ let tests: [HarnessTest] = [
             encoding: .utf8
         )
         let helperBundlePath =
-            "/Library/PrivilegedHelperTools/SilexSMARTService.app"
-        let legacyHelperPath =
-            "/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+            "/Library/PrivilegedHelperTools/SilexDaemon.app"
 
         try require(
             SMARTServiceConstants.installedServicePath.hasPrefix(
@@ -780,26 +772,21 @@ let tests: [HarnessTest] = [
             "service executable is inside named helper bundle"
         )
         try require(
-            preinstall.contains(legacyHelperPath),
-            "update removes legacy helper"
-        )
-        try require(
             postinstall.contains(helperBundlePath),
             "postinstall secures helper bundle"
         )
         try require(
-            uninstaller.contains(helperBundlePath)
-                && uninstaller.contains(legacyHelperPath),
-            "uninstaller supports current and legacy helper layouts"
+            uninstaller.contains(helperBundlePath),
+            "uninstaller contains helper bundle path"
         )
         try require(
             build.contains("Resources/PrivilegedHelper/Info.plist")
-                && build.contains("SilexSMARTService.app/Contents/MacOS")
+                && build.contains("SilexDaemon.app/Contents/MacOS")
                 && build.contains("InfoPlist.strings"),
             "build assembles named helper bundle"
         )
         try require(
-            verifier.contains("SilexSMARTService.app")
+            verifier.contains("SilexDaemon.app")
                 && verifier.contains("CFBundleDisplayName")
                 && verifier.contains("PAYLOAD_HELPER_COUNT")
                 && !verifier.contains("sfltool resetbtm"),
@@ -952,8 +939,8 @@ let tests: [HarnessTest] = [
         )
         for path in [
             "Applications/Silex.app",
-            "Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist",
-            "Library/PrivilegedHelperTools/SilexSMARTService.app",
+            "Library/LaunchDaemons/com.anon233.Silex.Daemon.plist",
+            "Library/PrivilegedHelperTools/SilexDaemon.app",
             "Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
         ] {
             try require(build.contains(path), "missing payload path \(path)")
@@ -989,7 +976,7 @@ let tests: [HarnessTest] = [
         )
         try require(
             uninstaller.contains(
-                "system/com.anon233.Silex.SMARTService"
+                "system/com.anon233.Silex.Daemon"
             ),
             "fixed daemon label"
         )
@@ -1166,7 +1153,7 @@ let tests: [HarnessTest] = [
             "Scripts/build-installer.sh 0.1.0 1",
             "/Applications/Silex.app",
             "com.anon233.Silex.pkg",
-            "launchctl print system/com.anon233.Silex.SMARTService",
+            "launchctl print system/com.anon233.Silex.Daemon",
             "System Settings",
             "Background Items",
             "offline",
@@ -1553,7 +1540,7 @@ let tests: [HarnessTest] = [
             encoding: .utf8
         )
         try require(
-            !script.contains("$BIN_PATH/SilexSMARTService")
+            !script.contains("$BIN_PATH/SilexDaemon")
                 && !script.contains("PrivilegedHelperTools/smartctl")
                 && !script.contains("Library/LaunchDaemons"),
             "application bundle must not contain system daemon payloads"

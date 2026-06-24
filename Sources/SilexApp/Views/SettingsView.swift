@@ -166,10 +166,10 @@ struct SettingsView: View {
             Spacer(minLength: 12)
 
             VStack(spacing: 4) {
-                Text("Silex \(appVersion) (\(appBuild))")
+                Text("Silex \(appVersion)  ·  \(buildDate)")
                     .font(.system(size: 11).monospaced())
                     .foregroundStyle(SilexTheme.muted)
-                Text(buildDate)
+                Text("github.com/Anon-233/Silex")
                     .font(.system(size: 10).monospaced())
                     .foregroundStyle(SilexTheme.muted)
             }
@@ -213,10 +213,6 @@ struct SettingsView: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
-    }
-
-    private var appBuild: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
     }
 
     private var buildDate: String {

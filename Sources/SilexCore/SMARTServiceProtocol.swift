@@ -1,10 +1,10 @@
 import Foundation
 
 public enum SMARTServiceConstants {
-    public static let machServiceName = "com.anon233.Silex.SMARTService"
-    public static let launchDaemonPlistName = "com.anon233.Silex.SMARTService.plist"
+    public static let machServiceName = "com.anon233.Silex.Daemon"
+    public static let launchDaemonPlistName = "com.anon233.Silex.Daemon.plist"
     public static let installedServicePath =
-        "/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents/MacOS/SilexSMARTService"
+        "/Library/PrivilegedHelperTools/SilexDaemon.app/Contents/MacOS/SilexDaemon"
     public static let installedSmartctlPath =
         "/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
 }
@@ -31,7 +31,7 @@ public enum PrivilegedSMARTPolicy {
     }
 }
 
-@objc(SilexSMARTServiceProtocol)
+@objc(SilexDaemonProtocol)
 public protocol SMARTServiceProtocol {
     func probe(reply: @escaping (Bool) -> Void)
 

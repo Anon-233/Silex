@@ -3,8 +3,8 @@ set -eu
 
 APP="/Applications/Silex.app"
 PLIST="/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
-HELPER_BUNDLE="/Library/PrivilegedHelperTools/SilexSMARTService.app"
-HELPER="$HELPER_BUNDLE/Contents/MacOS/SilexSMARTService"
+HELPER_BUNDLE="/Library/PrivilegedHelperTools/SilexDaemon.app"
+HELPER="$HELPER_BUNDLE/Contents/MacOS/SilexDaemon"
 SMARTCTL="/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
 SERVICE_LABEL="com.anon233.Silex.SMARTService"
 

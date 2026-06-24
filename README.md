@@ -97,9 +97,9 @@ by `.gitignore`.
 ## Daemon visibility and control
 
 The package installs the on-demand daemon
-`com.anon233.Silex.SMARTService`. It exits after 30 idle seconds and is not an
+`com.anon233.Silex.Daemon`. It exits after 30 idle seconds and is not an
 always-running process. Its privileged helper is packaged with the localized
-display name `Silex SMART Service` (`Silex SMART 后台服务` in Simplified
+display name `Silex Daemon` (`Silex 后台服务` in Simplified
 Chinese), while the internal launchd and Mach service identifier remains
 stable for in-place updates.
 
@@ -112,7 +112,7 @@ System Settings > General > Login Items & Extensions > Background Items
 Inspect its launchd state:
 
 ```bash
-launchctl print system/com.anon233.Silex.SMARTService
+launchctl print system/com.anon233.Silex.Daemon
 ```
 
 Use Console.app and filter for subsystem `com.anon233.Silex` to inspect logs.
@@ -183,7 +183,7 @@ history. Silex does not move data to arbitrary folders.
 
 - `Sources/SilexCore`: parser, SQLite, analytics, alerts, scheduling, XPC client.
 - `Sources/SilexApp`: menu-bar app, Swift Charts UI, localization.
-- `Sources/SilexSMARTService`: restricted privileged Mach service.
+- `Sources/SilexDaemon`: restricted privileged Mach service.
 - `Resources`: app metadata and LaunchDaemon plist.
 - `Scripts`: deterministic icon and `.app` assembly.
 - `Tests/SilexTestRunner`: executable regression suite.

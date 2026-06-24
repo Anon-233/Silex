@@ -12,9 +12,9 @@ COMPONENT_PLIST="$WORK/components.plist"
 PRODUCT_PACKAGE=""
 DISK_IMAGE=""
 DMG_ROOT="$WORK/dmg-root"
-HELPER_BUNDLE="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexSMARTService.app"
-HELPER_CONTENTS="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents"
-HELPER_EXECUTABLE="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents/MacOS/SilexSMARTService"
+HELPER_BUNDLE="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexDaemon.app"
+HELPER_CONTENTS="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexDaemon.app/Contents"
+HELPER_EXECUTABLE="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexDaemon.app/Contents/MacOS/SilexDaemon"
 ALLOW_DOWNGRADE=0
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 INSTALLER_SIGN_IDENTITY="${INSTALLER_SIGN_IDENTITY:-}"
@@ -102,8 +102,8 @@ BIN_PATH="$(swift build \
   "$DIST/Silex.app" \
   "$PAYLOAD_ROOT/Applications/Silex.app"
 /usr/bin/install -m 644 \
-  "$ROOT/Resources/LaunchDaemons/com.anon233.Silex.SMARTService.plist" \
-  "$PAYLOAD_ROOT/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
+  "$ROOT/Resources/LaunchDaemons/com.anon233.Silex.Daemon.plist" \
+  "$PAYLOAD_ROOT/Library/LaunchDaemons/com.anon233.Silex.Daemon.plist"
 /usr/bin/install -m 644 \
   "$ROOT/Resources/PrivilegedHelper/Info.plist" \
   "$HELPER_CONTENTS/Info.plist"
@@ -114,7 +114,7 @@ BIN_PATH="$(swift build \
   "$ROOT/Resources/PrivilegedHelper/zh-Hans.lproj/InfoPlist.strings" \
   "$HELPER_CONTENTS/Resources/zh-Hans.lproj/InfoPlist.strings"
 /usr/bin/install -m 755 \
-  "$BIN_PATH/SilexSMARTService" \
+  "$BIN_PATH/SilexDaemon" \
   "$HELPER_EXECUTABLE"
 /usr/bin/install -m 755 \
   "$SMARTCTL_SOURCE" \
@@ -134,7 +134,7 @@ if [[ "$APP_SIGN_IDENTITY" == "-" ]]; then
   /usr/bin/codesign \
     --force \
     --sign - \
-    --identifier com.anon233.Silex.SMARTService \
+    --identifier com.anon233.Silex.Daemon \
     "$HELPER_BUNDLE"
 else
   /usr/bin/codesign \
