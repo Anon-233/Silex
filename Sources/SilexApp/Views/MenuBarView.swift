@@ -49,19 +49,6 @@ struct MenuBarView: View {
 
             Button {
                 openWindow(id: "main")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    guard let window = NSApp.windows.first(where: {
-                        !$0.isKind(of: NSPanel.self)
-                    }) else { return }
-                    let saved = window.level
-                    window.level = .floating
-                    window.orderFrontRegardless()
-                    window.makeKey()
-                    NSApp.activate()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        window.level = saved
-                    }
-                }
             } label: {
                 Label {
                     LocalizedLabel("action.open")
@@ -104,4 +91,3 @@ struct MenuBarView: View {
         localized(key, locale: model.locale)
     }
 }
-

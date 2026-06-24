@@ -17,8 +17,11 @@ struct SilexApplication: App {
                 MenuBarView(model: model)
             }
         } label: {
-            AppMark()
-                .frame(width: 17, height: 17)
+            Image("logo")
+                .resizable()
+                .renderingMode(.template)
+                .scaledToFit()
+                .frame(width: 18, height: 18)
         }
         .menuBarExtraStyle(.window)
     }
