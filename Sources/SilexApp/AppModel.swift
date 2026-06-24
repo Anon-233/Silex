@@ -101,7 +101,6 @@ final class AppModel: ObservableObject {
             name: localizedDefaultRuleName(),
             metric: .temperature,
             aggregation: .maximum,
-            windowHours: 24,
             comparison: .greaterThan,
             threshold: 60,
             cooldownHours: 8,

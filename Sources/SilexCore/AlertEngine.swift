@@ -41,7 +41,7 @@ public struct AlertEngine: Sendable {
         guard rule.isEnabled, !isCoolingDown(rule, now: now) else {
             return nil
         }
-        guard let observed = observedValue(for: rule, samples: samples, now: now) else {
+        guard let observed = observedValue(for: rule, samples: samples) else {
             return nil
         }
         guard compare(observed, rule.comparison, rule.threshold) else {
@@ -60,24 +60,17 @@ public struct AlertEngine: Sendable {
 
     public func observedValue(
         for rule: AlertRule,
-        samples: [DriveSample],
-        now: Date
+        samples: [DriveSample]
     ) -> Double? {
-        let windowStart = now.addingTimeInterval(-max(rule.windowHours, 0) * 3_600)
-        let window = samples
-            .filter { $0.collectedAt >= windowStart && $0.collectedAt <= now }
-            .sorted { $0.collectedAt < $1.collectedAt }
-        let statistics = analyzer.statistics(for: rule.metric, samples: window)
+        let sorted = samples.sorted { $0.collectedAt < $1.collectedAt }
+        let statistics = analyzer.statistics(for: rule.metric, samples: sorted)
 
         switch rule.aggregation {
         case .current:
             return statistics.latest
         case .increase:
-            guard
-                let first = window.compactMap({ rule.metric.value(in: $0) }).first,
-                let last = window.compactMap({ rule.metric.value(in: $0) }).last,
-                window.compactMap({ rule.metric.value(in: $0) }).count >= 2
-            else {
+            let values = sorted.compactMap { rule.metric.value(in: $0) }
+            guard let first = values.first, let last = values.last, values.count >= 2 else {
                 return nil
             }
             return last - first
@@ -137,4 +130,3 @@ public struct AlertEngine: Sendable {
         return now.timeIntervalSince(lastTriggeredAt) < max(rule.cooldownHours, 0) * 3_600
     }
 }
-

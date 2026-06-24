@@ -12,15 +12,10 @@ public enum Metric: String, Codable, CaseIterable, Sendable {
     case percentageUsed
     case dataRead
     case dataWritten
-    case hostReadCommands
-    case hostWriteCommands
-    case controllerBusyMinutes
     case powerCycles
     case powerOnHours
     case unsafeShutdowns
     case mediaErrors
-    case errorLogEntries
-    case criticalWarning
 }
 
 public enum RuleAggregation: String, Codable, CaseIterable, Sendable {
@@ -44,7 +39,6 @@ public struct AlertRule: Codable, Equatable, Identifiable, Sendable {
     public var name: String
     public var metric: Metric
     public var aggregation: RuleAggregation
-    public var windowHours: Double
     public var comparison: RuleComparison
     public var threshold: Double
     public var cooldownHours: Double
@@ -56,7 +50,6 @@ public struct AlertRule: Codable, Equatable, Identifiable, Sendable {
         name: String,
         metric: Metric,
         aggregation: RuleAggregation,
-        windowHours: Double,
         comparison: RuleComparison,
         threshold: Double,
         cooldownHours: Double,
@@ -67,7 +60,6 @@ public struct AlertRule: Codable, Equatable, Identifiable, Sendable {
         self.name = name
         self.metric = metric
         self.aggregation = aggregation
-        self.windowHours = windowHours
         self.comparison = comparison
         self.threshold = threshold
         self.cooldownHours = cooldownHours

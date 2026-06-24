@@ -228,7 +228,7 @@ let tests: [HarnessTest] = [
 
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .maximum,
-            windowHours: 24, comparison: .greaterThan, threshold: 60,
+            comparison: .greaterThan, threshold: 60,
             cooldownHours: 8, isEnabled: true
         )
         try rules.save(rule)
@@ -372,7 +372,7 @@ let tests: [HarnessTest] = [
         ]
         var rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .maximum,
-            windowHours: 24, comparison: .greaterThan, threshold: 30,
+            comparison: .greaterThan, threshold: 30,
             cooldownHours: 8, isEnabled: true
         )
         try require(engine.evaluate(rule, samples: values, now: now) != nil, "rule should trigger")
@@ -432,7 +432,7 @@ let tests: [HarnessTest] = [
         ])
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .current,
-            windowHours: 24, comparison: .greaterThan, threshold: 20,
+            comparison: .greaterThan, threshold: 20,
             cooldownHours: 0, isEnabled: true
         )
         try rules.save(rule)
@@ -454,7 +454,7 @@ let tests: [HarnessTest] = [
     HarnessTest(name: "conditional notifier obeys notification setting") {
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .current,
-            windowHours: 24, comparison: .greaterThan, threshold: 20,
+            comparison: .greaterThan, threshold: 20,
             cooldownHours: 0, isEnabled: true
         )
         let match = AlertEngine().simulatedMatch(
@@ -489,7 +489,7 @@ let tests: [HarnessTest] = [
         ])
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .current,
-            windowHours: 24, comparison: .greaterThan, threshold: 20,
+            comparison: .greaterThan, threshold: 20,
             cooldownHours: 0, isEnabled: true
         )
         try rules.save(rule)
@@ -607,7 +607,7 @@ let tests: [HarnessTest] = [
             name: "Warm",
             metric: .temperature,
             aggregation: .maximum,
-            windowHours: 24,
+            
             comparison: .greaterThan,
             threshold: 60,
             cooldownHours: 8,
@@ -627,7 +627,6 @@ let tests: [HarnessTest] = [
         invalid.metric = .availableSpareThreshold
         invalid.aggregation = .average
         invalid.threshold = .infinity
-        invalid.windowHours = -1
         invalid.cooldownHours = -1
         try requireEqual(
             invalid.validationErrors(),
@@ -635,7 +634,7 @@ let tests: [HarnessTest] = [
                 .emptyName,
                 .invalidAggregation,
                 .invalidThreshold,
-                .invalidWindow,
+                
                 .invalidCooldown
             ],
             "invalid draft fields"

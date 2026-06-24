@@ -4,7 +4,6 @@ public enum RuleDraftValidationError: Equatable, Sendable {
     case emptyName
     case invalidAggregation
     case invalidThreshold
-    case invalidWindow
     case invalidCooldown
 }
 
@@ -17,7 +16,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
     public var name: String
     public var metric: Metric
     public var aggregation: RuleAggregation
-    public var windowHours: Double
     public var comparison: RuleComparison
     public var threshold: Double
     public var cooldownHours: Double
@@ -29,7 +27,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
         name = rule.name
         metric = rule.metric
         aggregation = rule.aggregation
-        windowHours = rule.windowHours
         comparison = rule.comparison
         threshold = rule.threshold
         cooldownHours = rule.cooldownHours
@@ -48,9 +45,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
         if !threshold.isFinite {
             errors.append(.invalidThreshold)
         }
-        if !windowHours.isFinite || windowHours < 0 {
-            errors.append(.invalidWindow)
-        }
         if !cooldownHours.isFinite || cooldownHours < 0 {
             errors.append(.invalidCooldown)
         }
@@ -67,7 +61,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             metric: metric,
             aggregation: aggregation,
-            windowHours: windowHours,
             comparison: comparison,
             threshold: threshold,
             cooldownHours: cooldownHours,

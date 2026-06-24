@@ -9,26 +9,21 @@ public extension Metric {
             "%"
         case .dataRead, .dataWritten:
             "GB"
-        case .controllerBusyMinutes:
-            "min"
         case .powerOnHours:
             "h"
-        case .hostReadCommands, .hostWriteCommands, .powerCycles,
-             .unsafeShutdowns, .mediaErrors, .errorLogEntries,
-             .criticalWarning:
+        case .powerCycles, .unsafeShutdowns, .mediaErrors:
             "count"
         }
     }
 
     var allowedAggregations: [RuleAggregation] {
         switch self {
-        case .availableSpareThreshold, .criticalWarning:
+        case .availableSpareThreshold:
             [.current, .minimum, .maximum]
         case .temperature, .availableSpare, .percentageUsed:
             [.current, .increase, .average, .minimum, .maximum]
-        case .dataRead, .dataWritten, .hostReadCommands, .hostWriteCommands,
-             .controllerBusyMinutes, .powerCycles, .powerOnHours,
-             .unsafeShutdowns, .mediaErrors, .errorLogEntries:
+        case .dataRead, .dataWritten, .powerCycles, .powerOnHours,
+             .unsafeShutdowns, .mediaErrors:
             RuleAggregation.allCases
         }
     }
@@ -47,12 +42,6 @@ public extension Metric {
             sample.dataReadBytes.map { Double($0) / 1_000_000_000 }
         case .dataWritten:
             sample.dataWrittenBytes.map { Double($0) / 1_000_000_000 }
-        case .hostReadCommands:
-            sample.hostReadCommands.map(Double.init)
-        case .hostWriteCommands:
-            sample.hostWriteCommands.map(Double.init)
-        case .controllerBusyMinutes:
-            sample.controllerBusyMinutes.map(Double.init)
         case .powerCycles:
             sample.powerCycles.map(Double.init)
         case .powerOnHours:
@@ -61,11 +50,6 @@ public extension Metric {
             sample.unsafeShutdowns.map(Double.init)
         case .mediaErrors:
             sample.mediaErrors.map(Double.init)
-        case .errorLogEntries:
-            sample.errorLogEntries.map(Double.init)
-        case .criticalWarning:
-            Double(sample.criticalWarning)
         }
     }
 }
-

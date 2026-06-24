@@ -29,10 +29,8 @@ extension Metric {
         switch self {
         case .availableSpare, .availableSpareThreshold, .percentageUsed:
             .percentage
-        case .dataRead, .dataWritten, .hostReadCommands, .hostWriteCommands,
-             .controllerBusyMinutes, .powerCycles, .powerOnHours,
-             .unsafeShutdowns, .mediaErrors, .errorLogEntries,
-             .criticalWarning:
+        case .dataRead, .dataWritten, .powerCycles, .powerOnHours,
+             .unsafeShutdowns, .mediaErrors:
             .nonnegative
         case .temperature:
             .unconstrained

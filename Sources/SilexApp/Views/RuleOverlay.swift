@@ -155,7 +155,6 @@ struct RuleOverlay: View {
             name: localized("rule.defaultName", locale: model.locale),
             metric: .temperature,
             aggregation: .maximum,
-            windowHours: 24,
             comparison: .greaterThan,
             threshold: 60,
             cooldownHours: 8,
@@ -301,10 +300,6 @@ private struct RuleEditorRow: View {
             }
 
             HStack(alignment: .bottom, spacing: 8) {
-                field("rule.window") {
-                    TextField("", value: $draft.windowHours, format: .number)
-                        .frame(width: 78)
-                }
                 field("rule.cooldown") {
                     TextField("", value: $draft.cooldownHours, format: .number)
                         .frame(width: 78)
@@ -359,8 +354,6 @@ private extension RuleDraftValidationError {
             "rule.validation.invalidAggregation"
         case .invalidThreshold:
             "rule.validation.invalidThreshold"
-        case .invalidWindow:
-            "rule.validation.invalidWindow"
         case .invalidCooldown:
             "rule.validation.invalidCooldown"
         }
