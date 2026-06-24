@@ -35,6 +35,7 @@ struct WindowConfigurator: NSViewRepresentable {
 
 private final class HidingView: NSView {
     private let coordinator: WindowConfigurator.Coordinator
+    private var didInitialActivate = false
 
     init(coordinator: WindowConfigurator.Coordinator) {
         self.coordinator = coordinator
@@ -49,5 +50,10 @@ private final class HidingView: NSView {
         super.viewDidMoveToWindow()
         guard let window = self.window else { return }
         coordinator.configure(window)
+        if !didInitialActivate {
+            didInitialActivate = true
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+        }
     }
 }
