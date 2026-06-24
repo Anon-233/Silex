@@ -3,8 +3,11 @@
 "action.collect" = "立即采集";
 "action.rules" = "规则";
 "action.open" = "打开 Silex";
+"action.open.short" = "打开";
 "action.quit" = "退出";
+"action.quit.short" = "退出";
 "action.refresh" = "刷新";
+"action.collect.short" = "采集";
 "action.backgroundItems" = "后台项目…";
 "action.previous" = "上一页";
 "action.next" = "下一页";

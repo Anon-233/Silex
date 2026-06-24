@@ -59,6 +59,10 @@ install -m 644 \
 /usr/bin/plutil -replace SilexBuildDate \
   -string "$(date '+%Y-%m-%d %H:%M %Z')" "$CONTENTS/Info.plist"
 
+install -m 644 \
+  "$ROOT/Sources/SilexApp/Resources/logo.png" \
+  "$CONTENTS/Resources/logo.png"
+
 ICONSET="$DIST/AppIcon.iconset"
 rm -rf "$ICONSET"
 /usr/bin/swift "$ROOT/Scripts/generate-icon.swift" "$ICONSET"

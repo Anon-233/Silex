@@ -3,8 +3,11 @@
 "action.collect" = "Collect Now";
 "action.rules" = "Rules";
 "action.open" = "Open Silex";
+"action.open.short" = "Open";
 "action.quit" = "Quit";
+"action.quit.short" = "Quit";
 "action.refresh" = "Refresh";
+"action.collect.short" = "Collect";
 "action.backgroundItems" = "Background Items…";
 "action.previous" = "Previous";
 "action.next" = "Next";

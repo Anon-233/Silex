@@ -6,41 +6,39 @@ struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                AppMark()
-                    .frame(width: 24, height: 24)
-                VStack(alignment: .leading, spacing: 1) {
+        VStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 2) {
                     LocalizedLabel("app.name")
-                        .font(.headline)
+                        .font(.system(size: 17, weight: .bold))
                     if let sample = model.latestSample {
                         Text(sample.smartPassed
                              ? localizedStatus("status.normal")
                              : localizedStatus("status.failed"))
-                            .font(.caption)
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(sample.smartPassed ? .green : .red)
                     } else {
                         LocalizedLabel("status.noData")
-                            .font(.caption)
+                            .font(.system(size: 13))
                             .foregroundStyle(SilexTheme.muted)
                     }
                 }
-                Spacer()
-            }
 
-            if let sample = model.latestSample {
-                HStack(spacing: 0) {
-                    metricRow(
-                        label: localized("metric.dataRead", locale: model.locale),
-                        bytes: sample.dataReadBytes,
-                        color: .blue
-                    )
-                    Spacer()
-                    metricRow(
-                        label: localized("metric.dataWritten", locale: model.locale),
-                        bytes: sample.dataWrittenBytes,
-                        color: .cyan
-                    )
+                Spacer()
+
+                if let sample = model.latestSample {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        dataLine(
+                            label: localized("metric.dataRead", locale: model.locale),
+                            bytes: sample.dataReadBytes,
+                            color: .blue
+                        )
+                        dataLine(
+                            label: localized("metric.dataWritten", locale: model.locale),
+                            bytes: sample.dataWrittenBytes,
+                            color: .cyan
+                        )
+                    }
                 }
             }
 
@@ -48,17 +46,23 @@ struct MenuBarView: View {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
-                    .lineLimit(3)
+                    .lineLimit(2)
             }
 
             Divider()
 
             HStack(spacing: 6) {
                 Button {
-                    openWindow(id: "main")
+                    if let window = NSApp.windows.first(where: {
+                        $0.title == "Silex"
+                    }) {
+                        window.makeKeyAndOrderFront(nil)
+                    } else {
+                        openWindow(id: "main")
+                    }
                 } label: {
                     Label {
-                        LocalizedLabel("action.open")
+                        Text(localized("action.open.short", locale: model.locale))
                     } icon: {
                         Image(systemName: "macwindow")
                     }
@@ -68,9 +72,7 @@ struct MenuBarView: View {
                     model.collectNow()
                 } label: {
                     Label {
-                        LocalizedLabel(model.isCollecting
-                            ? "status.collecting"
-                            : "action.collect")
+                        Text(localized("action.collect.short", locale: model.locale))
                     } icon: {
                         Image(systemName: "arrow.clockwise")
                     }
@@ -81,7 +83,7 @@ struct MenuBarView: View {
                     NSApp.terminate(nil)
                 } label: {
                     Label {
-                        LocalizedLabel("action.quit")
+                        Text(localized("action.quit.short", locale: model.locale))
                     } icon: {
                         Image(systemName: "power")
                     }
@@ -89,19 +91,19 @@ struct MenuBarView: View {
             }
         }
         .padding(14)
-        .frame(width: 300)
+        .frame(width: 320)
     }
 
-    private func metricRow(label: String, bytes: Int64?, color: Color) -> some View {
+    private func dataLine(label: String, bytes: Int64?, color: Color) -> some View {
         HStack(spacing: 5) {
             Circle()
                 .fill(color)
-                .frame(width: 7, height: 7)
+                .frame(width: 6, height: 6)
             Text(label)
-                .font(.caption)
+                .font(.system(size: 11))
                 .foregroundStyle(SilexTheme.muted)
             Text(formatTB(bytes))
-                .font(.caption.monospacedDigit())
+                .font(.system(size: 12, weight: .medium).monospacedDigit())
         }
     }
 
