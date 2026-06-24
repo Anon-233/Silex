@@ -31,15 +31,17 @@ struct WindowConfigurator: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject, NSWindowDelegate {
-        static var needsActivation = false
+        static var activationDeadline: Date = .distantPast
+        private var didActivate = false
 
         func windowDidChangeOcclusionState(_ notification: Notification) {
             guard
-                Self.needsActivation,
+                !didActivate,
+                Date.now < Self.activationDeadline,
                 let window = notification.object as? NSWindow,
                 window.isVisible
             else { return }
-            Self.needsActivation = false
+            didActivate = true
             let saved = window.level
             window.level = .floating
             window.orderFrontRegardless()

@@ -48,7 +48,7 @@ struct MenuBarView: View {
             Divider()
 
             Button {
-                WindowConfigurator.Coordinator.needsActivation = true
+                WindowConfigurator.Coordinator.activationDeadline = Date.now.addingTimeInterval(1)
                 openWindow(id: "main")
             } label: {
                 Label {
