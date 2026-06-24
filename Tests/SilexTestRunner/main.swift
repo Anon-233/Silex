@@ -570,6 +570,65 @@ let tests: [HarnessTest] = [
             "build must not install its output"
         )
     },
+    HarnessTest(name: "distribution includes authorized uninstall and DMG assembly") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let uninstaller = try String(
+            contentsOf: root.appendingPathComponent(
+                "Packaging/Uninstall Silex.applescript"
+            ),
+            encoding: .utf8
+        )
+        let instructions = try String(
+            contentsOf: root.appendingPathComponent("Packaging/README.txt"),
+            encoding: .utf8
+        )
+        let build = try String(
+            contentsOf: root.appendingPathComponent(
+                "Scripts/build-installer.sh"
+            ),
+            encoding: .utf8
+        )
+
+        try require(
+            uninstaller.contains("with administrator privileges"),
+            "authorized uninstall"
+        )
+        try require(
+            uninstaller.contains(
+                "system/com.anon233.Silex.SMARTService"
+            ),
+            "fixed daemon label"
+        )
+        try require(
+            uninstaller.contains("com.anon233.Silex.pkg"),
+            "forget package receipt"
+        )
+        try require(
+            uninstaller.contains("/Applications/Silex.app"),
+            "remove fixed app path"
+        )
+        try require(
+            !uninstaller.contains(
+                "/bin/rm -rf ~/Library/Application Support/Silex"
+            )
+                && !uninstaller.contains(
+                    "/bin/rm -rf \"$HOME/Library/Application Support/Silex\""
+                ),
+            "uninstaller must preserve history"
+        )
+        try require(
+            instructions.contains("Install Silex.pkg")
+                && instructions.contains("后台项目"),
+            "bilingual install and daemon guidance"
+        )
+        try require(build.contains("osacompile"), "compile uninstaller")
+        try require(build.contains("hdiutil create"), "create disk image")
+        try require(
+            build.contains("Install Silex.pkg")
+                && build.contains("Uninstall Silex.app"),
+            "expected DMG contents"
+        )
+    },
     HarnessTest(name: "English and Chinese localization keys match") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("Sources/SilexApp/Resources")

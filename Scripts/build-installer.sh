@@ -8,6 +8,8 @@ PAYLOAD_ROOT="$WORK/root"
 PACKAGE_SCRIPTS="$WORK/scripts"
 COMPONENT_PACKAGE="$WORK/Silex-component.pkg"
 PRODUCT_PACKAGE=""
+DISK_IMAGE=""
+DMG_ROOT="$WORK/dmg-root"
 ALLOW_DOWNGRADE=0
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 INSTALLER_SIGN_IDENTITY="${INSTALLER_SIGN_IDENTITY:-}"
@@ -46,9 +48,10 @@ fi
 SMARTCTL_SOURCE="$(realpath "$SMARTCTL_SOURCE")"
 PACKAGE_VERSION="$VERSION.$BUILD"
 PRODUCT_PACKAGE="$DIST/Silex-$VERSION.pkg"
+DISK_IMAGE="$DIST/Silex-$VERSION.dmg"
 
 rm -rf "$WORK"
-rm -f "$PRODUCT_PACKAGE"
+rm -f "$PRODUCT_PACKAGE" "$DISK_IMAGE"
 mkdir -p \
   "$PAYLOAD_ROOT/Applications" \
   "$PAYLOAD_ROOT/Library/LaunchDaemons" \
@@ -156,4 +159,33 @@ fi
   "${PRODUCT_ARGUMENTS[@]}" \
   "$PRODUCT_PACKAGE"
 
+mkdir -p "$DMG_ROOT"
+/bin/cp "$PRODUCT_PACKAGE" "$DMG_ROOT/Install Silex.pkg"
+/bin/cp "$ROOT/Packaging/README.txt" "$DMG_ROOT/README.txt"
+/usr/bin/osacompile \
+  -o "$DMG_ROOT/Uninstall Silex.app" \
+  "$ROOT/Packaging/Uninstall Silex.applescript"
+
+if [[ "$APP_SIGN_IDENTITY" == "-" ]]; then
+  /usr/bin/codesign \
+    --force \
+    --sign - \
+    "$DMG_ROOT/Uninstall Silex.app"
+else
+  /usr/bin/codesign \
+    --force \
+    --sign "$APP_SIGN_IDENTITY" \
+    --options runtime \
+    --timestamp \
+    "$DMG_ROOT/Uninstall Silex.app"
+fi
+
+/usr/bin/hdiutil create \
+  -ov \
+  -format UDZO \
+  -volname "Silex $VERSION" \
+  -srcfolder "$DMG_ROOT" \
+  "$DISK_IMAGE"
+
 echo "$PRODUCT_PACKAGE"
+echo "$DISK_IMAGE"
