@@ -140,16 +140,15 @@ struct MenuBarView: View {
             Text(label)
                 .font(.system(size: 12))
                 .foregroundStyle(SilexTheme.muted)
-            VStack(alignment: .trailing, spacing: 0) {
-                Text(formatTB(bytes))
-                    .font(.system(size: 14, weight: .medium).monospacedDigit())
-                if let rate {
-                    Text("\(rate >= 0 ? "+" : "")\(rate.formatted(.number.precision(.fractionLength(1)))) GB/h")
-                        .font(.system(size: 9).monospacedDigit())
-                        .foregroundStyle(SilexTheme.muted)
-                }
-            }
+            Text("\(formatTB(bytes))\(formatRate(rate))")
+                .font(.system(size: 14, weight: .medium).monospacedDigit())
         }
+    }
+
+    private func formatRate(_ rate: Double?) -> String {
+        guard let rate else { return "" }
+        let sign = rate >= 0 ? "+" : ""
+        return " (\(sign)\(rate.formatted(.number.precision(.fractionLength(1)))) GB/h)"
     }
 
     private func formatTB(_ bytes: Int64?) -> String {
