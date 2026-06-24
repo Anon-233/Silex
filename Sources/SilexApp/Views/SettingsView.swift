@@ -104,6 +104,7 @@ struct SettingsView: View {
                             LocalizedLabel("action.backgroundItems")
                         }
                         .buttonStyle(SilexSecondaryButtonStyle())
+                        .fixedSize()
                     }
                 }
 
