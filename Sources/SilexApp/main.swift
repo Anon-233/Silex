@@ -19,7 +19,6 @@ struct SilexApplication: App {
         } label: {
             Image("logo")
                 .resizable()
-                .renderingMode(.template)
                 .scaledToFit()
                 .frame(width: 18, height: 18)
         }
