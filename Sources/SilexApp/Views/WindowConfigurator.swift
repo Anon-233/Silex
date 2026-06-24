@@ -31,9 +31,22 @@ struct WindowConfigurator: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject, NSWindowDelegate {
-        func windowDidBecomeKey(_ notification: Notification) {
-            guard let window = notification.object as? NSWindow else { return }
+        private var isActivating = false
+
+        func windowDidChangeOcclusionState(_ notification: Notification) {
+            guard
+                !isActivating,
+                let window = notification.object as? NSWindow,
+                window.isVisible
+            else { return }
+            isActivating = true
+            let savedLevel = window.level
+            window.level = .floating
             window.orderFrontRegardless()
+            window.makeKey()
+            NSApp.activate()
+            window.level = savedLevel
+            isActivating = false
         }
     }
 }
