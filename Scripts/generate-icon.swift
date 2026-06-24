@@ -30,8 +30,6 @@ for (name, pixels) in variants {
     let image = NSImage(size: size)
     image.lockFocus()
 
-    let rect = NSRect(origin: .zero, size: size)
-
     // Background: rounded rectangle
     let margin = CGFloat(pixels) * 0.08
     let bgRect = NSRect(
