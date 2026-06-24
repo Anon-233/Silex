@@ -2,51 +2,24 @@ import AppKit
 import SwiftUI
 
 struct WindowConfigurator: NSViewRepresentable {
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
-            configure(view.window, coordinator: context.coordinator)
+            configure(view.window)
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async {
-            configure(nsView.window, coordinator: context.coordinator)
+            configure(nsView.window)
         }
     }
 
-    private func configure(_ window: NSWindow?, coordinator: Coordinator) {
+    private func configure(_ window: NSWindow?) {
         guard let window else { return }
         window.contentAspectRatio = NSSize(width: 4, height: 3)
         window.contentMinSize = NSSize(width: 760, height: 570)
         window.title = "Silex"
-        if window.delegate !== coordinator {
-            window.delegate = coordinator
-        }
-    }
-
-    final class Coordinator: NSObject, NSWindowDelegate {
-        private var isActivating = false
-
-        func windowDidChangeOcclusionState(_ notification: Notification) {
-            guard
-                !isActivating,
-                let window = notification.object as? NSWindow,
-                window.isVisible
-            else { return }
-            isActivating = true
-            let savedLevel = window.level
-            window.level = .floating
-            window.orderFrontRegardless()
-            window.makeKey()
-            NSApp.activate()
-            window.level = savedLevel
-            isActivating = false
-        }
     }
 }
