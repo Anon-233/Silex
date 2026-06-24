@@ -1,4 +1,5 @@
 import AppKit
+import SilexCore
 import SwiftUI
 
 struct MenuBarView: View {
@@ -47,15 +48,18 @@ struct MenuBarView: View {
                 Spacer()
 
                 if let sample = model.latestSample {
+                    let analyzer = HistoryAnalyzer()
                     VStack(alignment: .trailing, spacing: 6) {
                         dataLine(
                             label: localized("metric.dataRead", locale: model.locale),
                             bytes: sample.dataReadBytes,
+                            rate: analyzer.statistics(for: .dataRead, samples: model.samples).recentRatePerHour,
                             color: .blue
                         )
                         dataLine(
                             label: localized("metric.dataWritten", locale: model.locale),
                             bytes: sample.dataWrittenBytes,
+                            rate: analyzer.statistics(for: .dataWritten, samples: model.samples).recentRatePerHour,
                             color: .cyan
                         )
                     }
@@ -128,7 +132,7 @@ struct MenuBarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 
-    private func dataLine(label: String, bytes: Int64?, color: Color) -> some View {
+    private func dataLine(label: String, bytes: Int64?, rate: Double?, color: Color) -> some View {
         HStack(spacing: 5) {
             Circle()
                 .fill(color)
@@ -136,8 +140,15 @@ struct MenuBarView: View {
             Text(label)
                 .font(.system(size: 12))
                 .foregroundStyle(SilexTheme.muted)
-            Text(formatTB(bytes))
-                .font(.system(size: 14, weight: .medium).monospacedDigit())
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(formatTB(bytes))
+                    .font(.system(size: 14, weight: .medium).monospacedDigit())
+                if let rate {
+                    Text("\(rate >= 0 ? "+" : "")\(rate.formatted(.number.precision(.fractionLength(1)))) GB/h")
+                        .font(.system(size: 9).monospacedDigit())
+                        .foregroundStyle(SilexTheme.muted)
+                }
+            }
         }
     }
 
