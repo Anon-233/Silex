@@ -24,3 +24,5 @@ struct SilexApplication: App {
         .menuBarExtraStyle(.window)
     }
 }
+
+SilexApplication.main()
