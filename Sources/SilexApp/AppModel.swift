@@ -232,8 +232,7 @@ final class AppModel: ObservableObject {
             samples = try sampleRepository.all()
             rules = try ruleRepository.all()
             settings = try settingsRepository.load()
-            migrateDefaultsIfNeeded()
-            applyLaunchAtLoginSetting()
+            syncLaunchAtLoginWithSystem()
             observeWake()
             Task { [weak self] in
                 await self?.refreshServiceStatus()
@@ -345,15 +344,15 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func migrateDefaultsIfNeeded() {
-        let migrationKey = "SilexDidMigrateDefaults"
-        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
-        UserDefaults.standard.set(true, forKey: migrationKey)
-        // Force launchAtLogin to false for upgrades from old default
-        if settings.launchAtLogin {
-            settings.launchAtLogin = false
-            try? settingsRepository?.save(settings)
-            try? SMAppService.mainApp.unregister()
+    private func syncLaunchAtLoginWithSystem() {
+        let systemEnabled = SMAppService.mainApp.status == .enabled
+        if settings.launchAtLogin != systemEnabled {
+            // Force system to match our setting (defaults to false)
+            if settings.launchAtLogin {
+                try? SMAppService.mainApp.register()
+            } else {
+                try? SMAppService.mainApp.unregister()
+            }
         }
     }
 

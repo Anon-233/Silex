@@ -5,8 +5,10 @@ set answer to display dialog promptText buttons {"Cancel", "Uninstall"} default 
 
 if button returned of answer is "Uninstall" then
     set uninstallCommand to "/bin/launchctl bootout system/com.anon233.Silex.Daemon >/dev/null 2>&1 || true; /bin/rm -f /Library/LaunchDaemons/com.anon233.Silex.Daemon.plist; /bin/rm -rf /Library/PrivilegedHelperTools/SilexDaemon.app; /bin/rm -f /Library/PrivilegedHelperTools/com.anon233.Silex.smartctl; /bin/rm -rf /Applications/Silex.app; /usr/sbin/pkgutil --forget com.anon233.Silex.pkg >/dev/null 2>&1 || true"
+    set removeDataCommand to "/bin/rm -rf ~/Library/Application\\ Support/Silex"
     do shell script uninstallCommand with administrator privileges
-    display dialog "Silex was removed. History remains in ~/Library/Application Support/Silex.
+    do shell script removeDataCommand
+    display dialog "Silex and all data were removed.
 
-Silex 已移除。历史数据仍保留在 ~/Library/Application Support/Silex。" buttons {"OK"} default button "OK"
+Silex 及所有数据已移除。" buttons {"OK"} default button "OK"
 end if
