@@ -138,7 +138,7 @@ struct WindowInputAdapter: NSViewRepresentable {
             }
 
             didNavigate = true
-            move(horizontalDistance > 0 ? .next : .previous)
+            move(horizontalDistance > 0 ? .previous : .next)
             scheduleLegacyResetIfNeeded(for: event)
             return nil
         }

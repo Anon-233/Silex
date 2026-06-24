@@ -33,20 +33,6 @@ struct MainWindowView: View {
                         .stroke(SilexTheme.line, lineWidth: 1)
                 }
                 .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 20)
-                        .onEnded { value in
-                            var navigation = PageNavigationState(
-                                page: model.currentPage,
-                                pageCount: model.pageCount
-                            )
-                            model.currentPage = navigation.finishDrag(
-                                width: value.translation.width,
-                                height: value.translation.height,
-                                isBlocked: model.isRuleOverlayPresented
-                            )
-                        }
-                )
 
                 navigation
             }
