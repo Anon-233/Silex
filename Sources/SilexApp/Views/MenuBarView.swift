@@ -48,18 +48,8 @@ struct MenuBarView: View {
             Divider()
 
             Button {
+                WindowConfigurator.Coordinator.needsActivation = true
                 openWindow(id: "main")
-                DispatchQueue.main.async {
-                    guard let window = NSApp.windows.first(where: {
-                        !$0.isKind(of: NSPanel.self)
-                    }) else { return }
-                    let saved = window.level
-                    window.level = .floating
-                    window.orderFrontRegardless()
-                    window.makeKey()
-                    NSApp.activate()
-                    window.level = saved
-                }
             } label: {
                 Label {
                     LocalizedLabel("action.open")
