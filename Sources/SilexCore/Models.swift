@@ -5,6 +5,105 @@ public enum CollectionSource: String, Codable, CaseIterable, Sendable {
     case scheduled
 }
 
+public enum Metric: String, Codable, CaseIterable, Sendable {
+    case temperature
+    case availableSpare
+    case availableSpareThreshold
+    case percentageUsed
+    case dataRead
+    case dataWritten
+    case hostReadCommands
+    case hostWriteCommands
+    case controllerBusyMinutes
+    case powerCycles
+    case powerOnHours
+    case unsafeShutdowns
+    case mediaErrors
+    case errorLogEntries
+    case criticalWarning
+}
+
+public enum RuleAggregation: String, Codable, CaseIterable, Sendable {
+    case current
+    case increase
+    case ratePerHour
+    case average
+    case minimum
+    case maximum
+}
+
+public enum RuleComparison: String, Codable, CaseIterable, Sendable {
+    case greaterThan
+    case greaterThanOrEqual
+    case lessThan
+    case lessThanOrEqual
+}
+
+public struct AlertRule: Codable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public var name: String
+    public var metric: Metric
+    public var aggregation: RuleAggregation
+    public var windowHours: Double
+    public var comparison: RuleComparison
+    public var threshold: Double
+    public var cooldownHours: Double
+    public var isEnabled: Bool
+    public var lastTriggeredAt: Date?
+
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        metric: Metric,
+        aggregation: RuleAggregation,
+        windowHours: Double,
+        comparison: RuleComparison,
+        threshold: Double,
+        cooldownHours: Double,
+        isEnabled: Bool,
+        lastTriggeredAt: Date? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.metric = metric
+        self.aggregation = aggregation
+        self.windowHours = windowHours
+        self.comparison = comparison
+        self.threshold = threshold
+        self.cooldownHours = cooldownHours
+        self.isEnabled = isEnabled
+        self.lastTriggeredAt = lastTriggeredAt
+    }
+}
+
+public enum LanguagePreference: String, Codable, CaseIterable, Sendable {
+    case system
+    case english
+    case simplifiedChinese
+}
+
+public struct AppSettings: Codable, Equatable, Sendable {
+    public var collectionIntervalHours: Double
+    public var smartctlPath: String?
+    public var language: LanguagePreference
+    public var notificationsEnabled: Bool
+    public var launchAtLogin: Bool
+
+    public init(
+        collectionIntervalHours: Double = 8,
+        smartctlPath: String? = nil,
+        language: LanguagePreference = .system,
+        notificationsEnabled: Bool = true,
+        launchAtLogin: Bool = true
+    ) {
+        self.collectionIntervalHours = collectionIntervalHours
+        self.smartctlPath = smartctlPath
+        self.language = language
+        self.notificationsEnabled = notificationsEnabled
+        self.launchAtLogin = launchAtLogin
+    }
+}
+
 public struct DriveSample: Codable, Equatable, Identifiable, Sendable {
     public let id: UUID
     public let collectedAt: Date
@@ -86,4 +185,3 @@ public struct DriveSample: Codable, Equatable, Identifiable, Sendable {
         self.rawJSON = rawJSON
     }
 }
-
