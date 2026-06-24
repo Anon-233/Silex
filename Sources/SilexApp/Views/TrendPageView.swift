@@ -306,13 +306,15 @@ struct TrendPageView: View {
                 firstValue: format(
                     statistics.recentRatePerHour,
                     unit: "GB/h",
-                    digits: 2
+                    digits: 2,
+                    showSign: true
                 ),
                 secondLabel: "stat.average",
                 secondValue: format(
                     statistics.averageRatePerHour,
                     unit: "GB/h",
-                    digits: 2
+                    digits: 2,
+                    showSign: true
                 )
             )
         case .temperature:
@@ -347,7 +349,8 @@ struct TrendPageView: View {
                 secondValue: format(
                     statistics.recentChange,
                     unit: "%",
-                    digits: 1
+                    digits: 1,
+                    showSign: true
                 )
             )
         case .availableSpareThreshold:
@@ -368,7 +371,8 @@ struct TrendPageView: View {
                 firstValue: format(
                     statistics.recentChange,
                     unit: "",
-                    digits: 0
+                    digits: 0,
+                    showSign: true
                 ),
                 secondLabel: "stat.total",
                 secondValue: format(statistics.latest, unit: "", digits: 0)
@@ -379,14 +383,18 @@ struct TrendPageView: View {
     private func format(
         _ value: Double?,
         unit: String,
-        digits: Int
+        digits: Int,
+        showSign: Bool = false
     ) -> String {
         guard let value else {
             return "—"
         }
-        let number = value.formatted(
+        var number = value.formatted(
             .number.precision(.fractionLength(digits))
         )
+        if showSign, value > 0 {
+            number = "+" + number
+        }
         return unit.isEmpty ? number : "\(number) \(unit)"
     }
 }
