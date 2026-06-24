@@ -49,21 +49,6 @@ struct MenuBarView: View {
 
             Button {
                 openWindow(id: "main")
-                let box = ObserverBox()
-                box.observer = NotificationCenter.default.addObserver(
-                    forName: NSApplication.didResignActiveNotification,
-                    object: nil,
-                    queue: .main
-                ) { [weak box] _ in
-                    guard let box else { return }
-                    if let o = box.observer {
-                        NotificationCenter.default.removeObserver(o)
-                    }
-                    box.observer = nil
-                    NSApp.activate()
-                    NSApp.windows.first { !$0.isKind(of: NSPanel.self) }?
-                        .makeKeyAndOrderFront(nil)
-                }
             } label: {
                 Label {
                     LocalizedLabel("action.open")
@@ -105,9 +90,5 @@ struct MenuBarView: View {
     private func localizedStatus(_ key: String) -> String {
         localized(key, locale: model.locale)
     }
-}
-
-private final class ObserverBox {
-    var observer: NSObjectProtocol?
 }
 

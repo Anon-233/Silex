@@ -110,33 +110,37 @@ struct SettingsView: View {
 
             Spacer(minLength: 12)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(spacing: 4) {
                 Text("Silex \(appVersion) (\(appBuild))")
-                    .font(.system(size: 12).monospaced())
-                    .foregroundStyle(SilexTheme.muted)
-                Text(buildDate)
                     .font(.system(size: 11).monospaced())
                     .foregroundStyle(SilexTheme.muted)
-                HStack(spacing: 8) {
-                    Button {
-                        model.exportJSON()
-                    } label: {
-                        LocalizedLabel("settings.exportJSON")
-                    }
-                    .buttonStyle(SilexSecondaryButtonStyle())
-                    Button {
-                        model.exportCSV()
-                    } label: {
-                        LocalizedLabel("settings.exportCSV")
-                    }
-                    .buttonStyle(SilexSecondaryButtonStyle())
-                    Button(role: .destructive) {
-                        confirmsHistoryDeletion = true
-                    } label: {
-                        LocalizedLabel("settings.deleteHistory")
-                    }
-                    .buttonStyle(SilexSecondaryButtonStyle())
+                Text(buildDate)
+                    .font(.system(size: 10).monospaced())
+                    .foregroundStyle(SilexTheme.muted)
+            }
+            .frame(maxWidth: .infinity)
+
+            HStack(spacing: 8) {
+                Button {
+                    model.exportJSON()
+                } label: {
+                    LocalizedLabel("settings.exportJSON")
                 }
+                .buttonStyle(SilexSecondaryButtonStyle())
+
+                Button {
+                    model.exportCSV()
+                } label: {
+                    LocalizedLabel("settings.exportCSV")
+                }
+                .buttonStyle(SilexSecondaryButtonStyle())
+
+                Button(role: .destructive) {
+                    confirmsHistoryDeletion = true
+                } label: {
+                    LocalizedLabel("settings.deleteHistory")
+                }
+                .buttonStyle(SilexSecondaryButtonStyle())
             }
         }
         .padding(12)
@@ -170,7 +174,6 @@ struct SettingsView: View {
     }
 
     private var buildDate: String {
-        // Embedded via SILEX_BUILD_DATE in Info.plist; falls back to module date
         Bundle.main.object(forInfoDictionaryKey: "SilexBuildDate") as? String
             ?? localized("settings.buildDateUnknown", locale: model.locale)
     }
