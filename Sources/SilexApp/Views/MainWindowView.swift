@@ -1,4 +1,5 @@
 import SwiftUI
+import SilexCore
 
 struct MainWindowView: View {
     @ObservedObject var model: AppModel
@@ -35,11 +36,15 @@ struct MainWindowView: View {
                 .gesture(
                     DragGesture(minimumDistance: 20)
                         .onEnded { value in
-                            if value.translation.width < -60 {
-                                model.navigate(by: 1)
-                            } else if value.translation.width > 60 {
-                                model.navigate(by: -1)
-                            }
+                            var navigation = PageNavigationState(
+                                page: model.currentPage,
+                                pageCount: model.pageCount
+                            )
+                            model.currentPage = navigation.finishDrag(
+                                width: value.translation.width,
+                                height: value.translation.height,
+                                isBlocked: model.isRuleOverlayPresented
+                            )
                         }
                 )
 
@@ -55,6 +60,24 @@ struct MainWindowView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .background(WindowConfigurator())
+        .background(
+            WindowInputAdapter(
+                isBlocked: { model.isRuleOverlayPresented },
+                move: navigate
+            )
+        )
+        .alert(item: $model.presentedAlert) { alert in
+            appAlert(alert)
+        }
+        .alert(item: $model.ruleTestPresentation) { result in
+            Alert(
+                title: Text(localized("result.ruleTest.title", locale: model.locale)),
+                message: Text(ruleTestMessage(result)),
+                dismissButton: .default(
+                    Text(localized("action.dismiss", locale: model.locale))
+                )
+            )
+        }
         .animation(.easeInOut(duration: 0.18), value: model.isRuleOverlayPresented)
     }
 
@@ -94,38 +117,93 @@ struct MainWindowView: View {
     }
 
     private var navigation: some View {
-        HStack {
-            Button {
-                model.navigate(by: -1)
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .buttonStyle(.plain)
-            .disabled(model.currentPage == 0)
-            .accessibilityLabel(localized("action.previous", locale: model.locale))
-
-            Spacer()
-            HStack(spacing: 7) {
-                ForEach(0..<model.pageCount, id: \.self) { index in
+        HStack(spacing: 7) {
+            ForEach(0..<model.pageCount, id: \.self) { index in
+                Button {
+                    model.currentPage = index
+                } label: {
                     Capsule()
                         .fill(index == model.currentPage ? Color.green : Color.secondary.opacity(0.3))
                         .frame(width: index == model.currentPage ? 20 : 7, height: 7)
-                        .onTapGesture {
-                            model.currentPage = index
-                        }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    localized("navigation.page.\(index)", locale: model.locale)
+                )
+                .accessibilityAddTraits(
+                    index == model.currentPage ? .isSelected : []
+                )
             }
-            Spacer()
-
-            Button {
-                model.navigate(by: 1)
-            } label: {
-                Image(systemName: "chevron.right")
-            }
-            .buttonStyle(.plain)
-            .disabled(model.currentPage == model.pageCount - 1)
-            .accessibilityLabel(localized("action.next", locale: model.locale))
         }
-        .padding(.horizontal, 4)
+        .frame(maxWidth: .infinity)
+        .frame(height: 12)
+    }
+
+    private func navigate(_ direction: PageDirection) {
+        var navigation = PageNavigationState(
+            page: model.currentPage,
+            pageCount: model.pageCount
+        )
+        navigation.move(direction, isBlocked: model.isRuleOverlayPresented)
+        model.currentPage = navigation.page
+    }
+
+    private func appAlert(_ alert: AppAlert) -> Alert {
+        let title = Text(localized(alert.titleKey, locale: model.locale))
+        let message = Text(alert.message)
+        if alert.kind == .serviceUnavailable {
+            return Alert(
+                title: title,
+                message: message,
+                primaryButton: .default(
+                    Text(localized("action.openSettings", locale: model.locale)),
+                    action: model.openBackgroundItemsSettings
+                ),
+                secondaryButton: .cancel(
+                    Text(localized("action.cancel", locale: model.locale))
+                )
+            )
+        }
+        return Alert(
+            title: title,
+            message: message,
+            dismissButton: .default(
+                Text(localized("action.dismiss", locale: model.locale))
+            )
+        )
+    }
+
+    private func ruleTestMessage(_ result: RuleTestPresentation) -> String {
+        let metric = localized(
+            "metric.\(result.metric.rawValue)",
+            locale: model.locale
+        )
+        let comparison = localizedComparisonLabel(
+            result.comparison,
+            locale: model.locale
+        )
+        let summary = "\(result.ruleName)\n\(metric): "
+            + "\(result.observedValue.formatted(.number.precision(.fractionLength(0...2)))) "
+            + "\(comparison) "
+            + result.threshold.formatted(.number.precision(.fractionLength(0...2)))
+        let notification: String
+        switch result.notificationStatus {
+        case .disabled:
+            notification = localized(
+                "result.ruleTest.notificationDisabled",
+                locale: model.locale
+            )
+        case .delivered:
+            notification = localized(
+                "result.ruleTest.notificationDelivered",
+                locale: model.locale
+            )
+        case let .failed(message):
+            notification = localized(
+                "result.ruleTest.notificationFailed",
+                locale: model.locale
+            ) + "\n" + message
+        }
+        return summary + "\n\n" + notification
     }
 }

@@ -136,3 +136,9 @@
 "rule.validation.invalidThreshold" = "Enter a finite threshold.";
 "rule.validation.invalidWindow" = "Window must be zero or greater.";
 "rule.validation.invalidCooldown" = "Cooldown must be zero or greater.";
+"navigation.page.0" = "Settings page";
+"navigation.page.1" = "Health overview page";
+"navigation.page.2" = "Read and write page";
+"navigation.page.3" = "Temperature page";
+"navigation.page.4" = "Wear and spare page";
+"navigation.page.5" = "Events page";

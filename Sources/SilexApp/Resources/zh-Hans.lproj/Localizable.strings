@@ -136,3 +136,9 @@
 "rule.validation.invalidThreshold" = "请输入有限数值作为阈值。";
 "rule.validation.invalidWindow" = "时间窗口必须大于或等于零。";
 "rule.validation.invalidCooldown" = "冷却时间必须大于或等于零。";
+"navigation.page.0" = "设置页";
+"navigation.page.1" = "健康概览页";
+"navigation.page.2" = "读取与写入页";
+"navigation.page.3" = "温度页";
+"navigation.page.4" = "寿命与备用空间页";
+"navigation.page.5" = "事件页";

@@ -1135,6 +1135,52 @@ let tests: [HarnessTest] = [
             )
         }
     },
+    HarnessTest(name: "window shell uses native input without arrow buttons") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let mainWindow = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/MainWindowView.swift"
+            ),
+            encoding: .utf8
+        )
+        let configurator = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/WindowConfigurator.swift"
+            ),
+            encoding: .utf8
+        )
+        let appMain = try String(
+            contentsOf: root.appendingPathComponent("Sources/SilexApp/main.swift"),
+            encoding: .utf8
+        )
+
+        for removed in [
+            "chevron.left",
+            "chevron.right",
+            "action.previous",
+            "action.next"
+        ] {
+            try require(!mainWindow.contains(removed), "removed shell control \(removed)")
+        }
+        try require(
+            mainWindow.contains("WindowInputAdapter"),
+            "window-scoped input adapter"
+        )
+        try require(
+            mainWindow.contains("ForEach(0..<model.pageCount"),
+            "clickable page indicators"
+        )
+        try require(
+            configurator.contains("width: 760")
+                && configurator.contains("height: 570"),
+            "minimum content size"
+        )
+        try require(
+            appMain.contains("width: 900")
+                && appMain.contains("height: 675"),
+            "default content size"
+        )
+    },
     HarnessTest(name: "app packaging metadata is native and non-Dock") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let infoURL = root.appendingPathComponent("Resources/App/Info.plist")

@@ -21,8 +21,7 @@ struct WindowConfigurator: NSViewRepresentable {
             return
         }
         window.contentAspectRatio = NSSize(width: 4, height: 3)
-        window.contentMinSize = NSSize(width: 720, height: 540)
+        window.contentMinSize = NSSize(width: 760, height: 570)
         window.title = "Silex"
     }
 }
-
