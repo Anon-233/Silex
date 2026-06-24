@@ -4,6 +4,7 @@ import Foundation
 import OSLog
 import ServiceManagement
 import SilexCore
+import UserNotifications
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -70,6 +71,9 @@ final class AppModel: ObservableObject {
             try settingsRepository?.save(settings)
             applyLaunchAtLoginSetting()
             scheduleNextCollection()
+            if settings.notificationsEnabled {
+                Task { await requestNotificationPermissionIfNeeded() }
+            }
         } catch {
             SilexLog.app.error("Saving settings failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
@@ -346,17 +350,42 @@ final class AppModel: ObservableObject {
 
     private func applyLaunchAtLoginSetting() {
         do {
+            let status = SMAppService.mainApp.status
             if settings.launchAtLogin {
-                if SMAppService.mainApp.status == .notRegistered {
+                if status != .enabled {
                     try SMAppService.mainApp.register()
                 }
-            } else if SMAppService.mainApp.status == .enabled {
-                try SMAppService.mainApp.unregister()
+            } else {
+                if status == .enabled {
+                    try SMAppService.mainApp.unregister()
+                }
             }
         } catch {
             SilexLog.app.error("Login item update failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
-            presentError(error)
+            settings.launchAtLogin = false
+            try? settingsRepository?.save(settings)
+            presentedAlert = AppAlert(
+                kind: .error,
+                titleKey: "error.loginItem.title",
+                message: error.localizedDescription
+            )
+        }
+    }
+
+    private func requestNotificationPermissionIfNeeded() async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .notDetermined else { return }
+        let granted = try? await center.requestAuthorization(options: [.alert, .sound])
+        if granted != true {
+            self.settings.notificationsEnabled = false
+            try? self.settingsRepository?.save(self.settings)
+            presentedAlert = AppAlert(
+                kind: .error,
+                titleKey: "error.notifications.title",
+                message: localized("error.notifications.denied", locale: locale)
+            )
         }
     }
 

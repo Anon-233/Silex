@@ -138,6 +138,9 @@
 "error.database.title" = "历史记录不可用";
 "error.notification.title" = "通知发送失败";
 "error.settingsURL.message" = "无法打开系统设置。";
+"error.loginItem.title" = "登录项错误";
+"error.notifications.title" = "通知错误";
+"error.notifications.denied" = "通知权限被拒绝，请在系统设置中开启。";
 "overview.powerCycles" = "通电次数";
 "overview.unsafeShutdowns" = "异常断电";
 "overview.mediaErrors" = "介质错误";

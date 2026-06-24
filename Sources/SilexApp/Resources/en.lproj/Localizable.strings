@@ -138,6 +138,9 @@
 "error.database.title" = "History Unavailable";
 "error.notification.title" = "Notification Delivery Failed";
 "error.settingsURL.message" = "System Settings could not be opened.";
+"error.loginItem.title" = "Login Item Error";
+"error.notifications.title" = "Notification Error";
+"error.notifications.denied" = "Notification permission was denied. Enable it in System Settings.";
 "overview.powerCycles" = "Power Cycles";
 "overview.unsafeShutdowns" = "Unsafe Shutdowns";
 "overview.mediaErrors" = "Media Errors";
