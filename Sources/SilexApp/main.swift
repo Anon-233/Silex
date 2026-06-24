@@ -17,8 +17,8 @@ struct SilexApplication: App {
                 MenuBarView(model: model)
             }
         } label: {
-            Image(systemName: "waveform.path.ecg")
-                .font(.system(size: 16, weight: .semibold))
+            Image(systemName: "scalemass")
+                .imageScale(.large)
         }
         .menuBarExtraStyle(.window)
     }
