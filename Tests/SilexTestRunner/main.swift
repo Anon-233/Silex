@@ -556,6 +556,16 @@ let tests: [HarnessTest] = [
             build.contains("--ownership recommended"),
             "root-owned install"
         )
+        try require(
+            build.contains("--component-plist")
+                && build.contains("BundleIsRelocatable"),
+            "app bundle must use explicit non-relocatable component metadata"
+        )
+        try require(
+            build.contains("mktemp -d")
+                && build.contains("installer-work.XXXXXX"),
+            "each build must use an isolated staging directory"
+        )
         for path in [
             "Applications/Silex.app",
             "Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist",
@@ -702,6 +712,8 @@ let tests: [HarnessTest] = [
             "codesign --verify",
             "otool -L",
             "pkgutil --expand-full",
+            "xmllint --xpath",
+            "relocate/bundle",
             "hdiutil verify",
             "hdiutil attach",
             "Network.framework",

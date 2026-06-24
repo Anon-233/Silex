@@ -63,6 +63,16 @@ then
   exit 65
 fi
 
+RELOCATABLE_BUNDLES=$(
+  /usr/bin/xmllint --xpath \
+    'count(/pkg-info/relocate/bundle)' \
+    "$COMPONENT/PackageInfo"
+)
+if [[ "$RELOCATABLE_BUNDLES" != "0" ]]; then
+  echo "application bundle must not be relocatable" >&2
+  exit 65
+fi
+
 if /usr/bin/find "$PAYLOAD" -path '*Application Support*' -print -quit |
   /usr/bin/grep -q .
 then

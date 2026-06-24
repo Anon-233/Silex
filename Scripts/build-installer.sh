@@ -3,10 +3,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
-WORK="$DIST/installer-work"
+mkdir -p "$DIST"
+WORK="$(mktemp -d "$DIST/installer-work.XXXXXX")"
 PAYLOAD_ROOT="$WORK/root"
 PACKAGE_SCRIPTS="$WORK/scripts"
 COMPONENT_PACKAGE="$WORK/Silex-component.pkg"
+COMPONENT_PLIST="$WORK/components.plist"
 PRODUCT_PACKAGE=""
 DISK_IMAGE=""
 DMG_ROOT="$WORK/dmg-root"
@@ -15,6 +17,11 @@ APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 INSTALLER_SIGN_IDENTITY="${INSTALLER_SIGN_IDENTITY:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 SMARTCTL_SOURCE="${SMARTCTL_PATH:-$(command -v smartctl || true)}"
+
+cleanup_work() {
+  /bin/rm -rf "$WORK"
+}
+trap cleanup_work EXIT
 
 if [[ $# -lt 2 || $# -gt 3 ]]; then
   echo "usage: Scripts/build-installer.sh VERSION BUILD [--allow-downgrade]" >&2
@@ -58,7 +65,6 @@ PACKAGE_VERSION="$VERSION.$BUILD"
 PRODUCT_PACKAGE="$DIST/Silex-$VERSION.pkg"
 DISK_IMAGE="$DIST/Silex-$VERSION.dmg"
 
-rm -rf "$WORK"
 rm -f "$PRODUCT_PACKAGE" "$DISK_IMAGE"
 mkdir -p \
   "$PAYLOAD_ROOT/Applications" \
@@ -148,8 +154,30 @@ fi
   > "$WORK/Distribution.xml"
 
 /usr/bin/pkgbuild \
+  --analyze \
+  --root "$PAYLOAD_ROOT" \
+  "$COMPONENT_PLIST"
+/usr/bin/plutil \
+  -replace 0.BundleIsRelocatable \
+  -bool false \
+  "$COMPONENT_PLIST"
+/usr/bin/plutil \
+  -replace 0.BundleIsVersionChecked \
+  -bool true \
+  "$COMPONENT_PLIST"
+/usr/bin/plutil \
+  -replace 0.BundleHasStrictIdentifier \
+  -bool true \
+  "$COMPONENT_PLIST"
+/usr/bin/plutil \
+  -replace 0.BundleOverwriteAction \
+  -string upgrade \
+  "$COMPONENT_PLIST"
+
+/usr/bin/pkgbuild \
   --root "$PAYLOAD_ROOT" \
   --scripts "$PACKAGE_SCRIPTS" \
+  --component-plist "$COMPONENT_PLIST" \
   --identifier com.anon233.Silex.pkg \
   --version "$PACKAGE_VERSION" \
   --ownership recommended \
