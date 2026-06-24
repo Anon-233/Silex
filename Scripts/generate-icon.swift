@@ -45,6 +45,7 @@ for (name, pixels) in variants {
         xRadius: CGFloat(pixels) * 0.20,
         yRadius: CGFloat(pixels) * 0.20
     )
+    bgPath.addClip()
 
     // Background: vertical gradient #FFFFFF → #F6FAFF
     let bgGradient = NSGradient(
