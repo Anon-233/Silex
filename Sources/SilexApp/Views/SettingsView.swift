@@ -166,10 +166,11 @@ struct SettingsView: View {
             Spacer(minLength: 12)
 
             VStack(spacing: 4) {
-                Text("Silex \(appVersion)  ·  \(buildDate)")
-                    .font(.system(size: 11).monospaced())
+                Text("Built \(buildDate)")
+                    .font(.system(size: 10).monospaced())
                     .foregroundStyle(SilexTheme.muted)
-                Text("github.com/Anon-233/Silex")
+                Link("GitHub Repo: github.com/Anon-233/Silex",
+                     destination: URL(string: "https://github.com/Anon-233/Silex")!)
                     .font(.system(size: 10).monospaced())
                     .foregroundStyle(SilexTheme.muted)
             }
@@ -209,10 +210,6 @@ struct SettingsView: View {
             model.settings.smartctlPath = path
             model.saveSettings()
         }
-    }
-
-    private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
     }
 
     private var buildDate: String {

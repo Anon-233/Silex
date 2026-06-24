@@ -94,7 +94,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         smartctlPath: String? = nil,
         language: LanguagePreference = .system,
         notificationsEnabled: Bool = true,
-        launchAtLogin: Bool = true
+        launchAtLogin: Bool = false
     ) {
         self.collectionIntervalHours = collectionIntervalHours
         self.smartctlPath = smartctlPath
