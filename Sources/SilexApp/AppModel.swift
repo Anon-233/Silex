@@ -203,7 +203,7 @@ final class AppModel: ObservableObject {
         do {
             try sampleRepository?.deleteAll()
             samples = []
-            scheduleNextCollection()
+            scheduleNextCollection(allowImmediate: false)
             presentedAlert = AppAlert(
                 kind: .success,
                 titleKey: "result.historyDeleted.title",
@@ -287,7 +287,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func scheduleNextCollection() {
+    private func scheduleNextCollection(allowImmediate: Bool = true) {
         guard serviceStatus == .available else {
             scheduler.cancel()
             nextCollectionAt = nil
@@ -300,7 +300,7 @@ final class AppModel: ObservableObject {
             now: .now
         )
 
-        if plan.isDueNow {
+        if allowImmediate, plan.isDueNow {
             scheduler.cancel()
             nextCollectionAt = plan.scheduledAt
             guard !isCollecting else {
