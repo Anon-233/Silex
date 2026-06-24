@@ -312,8 +312,17 @@ final class AppModel: ObservableObject {
             return
         }
 
-        nextCollectionAt = plan.scheduledAt
-        scheduler.schedule(at: plan.scheduledAt) { [weak self] in
+        let fireAt: Date
+        if !allowImmediate, latestSample == nil {
+            let intervalSeconds = CollectionSchedulePlanner
+                .normalizedIntervalHours(settings.collectionIntervalHours) * 3_600
+            fireAt = Date.now.addingTimeInterval(intervalSeconds)
+        } else {
+            fireAt = plan.scheduledAt
+        }
+
+        nextCollectionAt = fireAt
+        scheduler.schedule(at: fireAt) { [weak self] in
             Task { @MainActor [weak self] in
                 await self?.collect(source: .scheduled)
             }
