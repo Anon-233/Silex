@@ -79,7 +79,7 @@ struct MenuBarView: View {
                     label: model.isCollecting
                         ? localized("status.collecting", locale: model.locale)
                         : localized("action.collect.short", locale: model.locale),
-                    icon: "arrow.clockwise"
+                    icon: "square.and.arrow.down"
                 ) {
                     model.collectNow()
                 }
