@@ -54,25 +54,24 @@ swift build --disable-sandbox
 
 ## Build a local app bundle
 
-Create and ad-hoc sign `dist/Silex.app` without privileged system payloads:
+Create and ad-hoc sign a local `Silex.app` for testing (placed in `dist/`):
 
 ```bash
-Scripts/build-app.sh --adhoc
+SILEX_VERSION=1.0.0 SILEX_BUILD=1 zsh Scripts/build-app.sh --adhoc
 ```
 
 ## Build the personal installer
 
-Build version `0.1.0`, build number `1`:
+Build version `1.0.0`, build number `1`:
 
 ```bash
-Scripts/build-installer.sh 0.1.0 1
+Scripts/build-installer.sh 1.0.0 1
 ```
 
 The command generates and verifies:
 
 ```text
-dist/Silex-0.1.0.pkg
-dist/Silex-0.1.0.dmg
+dist/Silex-1.0.0.dmg
 ```
 
 Building does not install the package, request administrator privileges, or
@@ -150,7 +149,7 @@ certificates, use Developer ID signing:
 ```bash
 APP_SIGN_IDENTITY="Developer ID Application: Example" \
 INSTALLER_SIGN_IDENTITY="Developer ID Installer: Example" \
-Scripts/build-installer.sh 0.1.0 1
+Scripts/build-installer.sh 1.0.0 1
 ```
 
 To notarize, first store credentials in a Keychain profile, then add:

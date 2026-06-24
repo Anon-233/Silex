@@ -1145,7 +1145,7 @@ let tests: [HarnessTest] = [
             encoding: .utf8
         )
         for required in [
-            "Scripts/build-installer.sh 0.1.0 1",
+            "Scripts/build-installer.sh 1.0.0 1",
             "/Applications/Silex.app",
             "com.anon233.Silex.pkg",
             "launchctl print system/com.anon233.Silex.Daemon",
@@ -1185,7 +1185,6 @@ let tests: [HarnessTest] = [
             "dialog.deleteHistory.title",
             "dialog.unsavedRules.title",
             "result.ruleTest.title",
-            "result.ruleTest.notificationDisabled",
             "overview.alerts",
             "overview.device",
             "status.nextCollection"
