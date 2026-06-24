@@ -8,7 +8,7 @@
 "action.quit.short" = "退出";
 "action.refresh" = "刷新";
 "action.collect.short" = "采集";
-"action.backgroundItems" = "后台项目…";
+"action.backgroundItems" = "打开系统设置";
 "action.previous" = "上一页";
 "action.next" = "下一页";
 "page.settings" = "设置";

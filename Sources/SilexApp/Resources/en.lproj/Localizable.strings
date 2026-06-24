@@ -8,7 +8,7 @@
 "action.quit.short" = "Quit";
 "action.refresh" = "Refresh";
 "action.collect.short" = "Collect";
-"action.backgroundItems" = "Background Items…";
+"action.backgroundItems" = "Open System Settings";
 "action.previous" = "Previous";
 "action.next" = "Next";
 "page.settings" = "Settings";
