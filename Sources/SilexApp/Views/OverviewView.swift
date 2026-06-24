@@ -4,84 +4,151 @@ struct OverviewView: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        VStack(spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    LocalizedLabel("page.overview")
-                        .font(.title2.bold())
-                    if let date = model.latestSample?.collectedAt {
-                        HStack(spacing: 4) {
-                            LocalizedLabel("status.lastCollected")
-                            Text(date, style: .relative)
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                if let sample = model.latestSample {
-                    HStack(spacing: 8) {
-                        Text(sample.smartPassed ? "PASSED" : "FAILED")
-                            .font(.title2.bold())
-                        LocalizedLabel(sample.smartPassed ? "status.normal" : "status.failed")
-                            .foregroundStyle(sample.smartPassed ? .green : .red)
-                    }
-                }
-            }
-
-            if let sample = model.latestSample {
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4),
-                    spacing: 10
-                ) {
-                    overviewCard("overview.model", sample.modelName, "internaldrive")
-                    overviewCard("overview.temperature", format(sample.temperatureCelsius, "°C"), "thermometer.medium")
-                    overviewCard("overview.read", formatBytes(sample.dataReadBytes), "arrow.down")
-                    overviewCard("overview.written", formatBytes(sample.dataWrittenBytes), "arrow.up")
-                    overviewCard("overview.spare", format(sample.availableSparePercent, "%"), "shippingbox")
-                    overviewCard("overview.used", format(sample.percentageUsed, "%"), "gauge.with.dots.needle.33percent")
-                    overviewCard("overview.powerOn", format(sample.powerOnHours.map(Double.init), "h"), "clock")
-                    overviewCard("overview.errors", "\(sample.mediaErrors ?? 0)", "exclamationmark.triangle")
-                }
-            } else {
-                ContentUnavailableView(
-                    localized("status.noData", locale: model.locale),
-                    systemImage: "internaldrive",
-                    description: Text(localized("message.emptyChart", locale: model.locale))
-                )
-                .frame(maxHeight: .infinity)
-            }
-
-            if let error = model.lastError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        VStack(spacing: 8) {
+            statusHeader
+            metricGrid
         }
-        .padding(16)
+        .padding(12)
     }
 
-    private func overviewCard(_ title: String, _ value: String, _ symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: symbol)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title3.bold().monospacedDigit())
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            LocalizedLabel(title)
+    private var statusHeader: some View {
+        HStack(spacing: 10) {
+            if let sample = model.latestSample {
+                Text(sample.smartPassed ? "PASSED" : "FAILED")
+                    .font(.title3.bold())
+                LocalizedLabel(sample.smartPassed ? "status.normal" : "status.failed")
+                    .font(.caption.bold())
+                    .foregroundStyle(sample.smartPassed ? .green : .red)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(
+                        (sample.smartPassed ? Color.green : Color.red)
+                            .opacity(0.12)
+                    )
+                    .clipShape(Capsule())
+            } else {
+                Text("—")
+                    .font(.title3.bold())
+                LocalizedLabel("status.noData")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if let firmware = model.latestSample?.firmwareVersion {
+                HStack(spacing: 4) {
+                    LocalizedLabel("overview.firmware")
+                    Text(firmware)
+                }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            }
+
+            if let nextCollectionAt = model.nextCollectionAt {
+                HStack(spacing: 4) {
+                    LocalizedLabel("status.nextCollection")
+                    Text(nextCollectionAt, style: .relative)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
         }
-        .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-        .padding(12)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 12)
+        .frame(height: 54)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.45))
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
     }
 
-    private func format(_ value: Double?, _ unit: String) -> String {
-        value.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) \(unit)" } ?? "—"
+    private var metricGrid: some View {
+        let cards = overviewCards
+        return Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow {
+                ForEach(Array(cards.prefix(5))) { card in
+                    OverviewMetricCard(
+                        card.titleKey,
+                        value: card.value,
+                        usesMonospacedDigits: card.usesMonospacedDigits
+                    )
+                }
+            }
+            GridRow {
+                ForEach(Array(cards.suffix(5))) { card in
+                    OverviewMetricCard(
+                        card.titleKey,
+                        value: card.value,
+                        usesMonospacedDigits: card.usesMonospacedDigits
+                    )
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var overviewCards: [OverviewCardValue] {
+        let sample = model.latestSample
+        return [
+            OverviewCardValue(
+                titleKey: "overview.temperature",
+                value: format(sample?.temperatureCelsius, unit: "°C")
+            ),
+            OverviewCardValue(
+                titleKey: "overview.spare",
+                value: format(sample?.availableSparePercent, unit: "%")
+            ),
+            OverviewCardValue(
+                titleKey: "overview.used",
+                value: format(sample?.percentageUsed, unit: "%")
+            ),
+            OverviewCardValue(
+                titleKey: "overview.read",
+                value: formatBytes(sample?.dataReadBytes)
+            ),
+            OverviewCardValue(
+                titleKey: "overview.written",
+                value: formatBytes(sample?.dataWrittenBytes)
+            ),
+            OverviewCardValue(
+                titleKey: "overview.powerCycles",
+                value: formatCount(sample?.powerCycles)
+            ),
+            OverviewCardValue(
+                titleKey: "overview.unsafeShutdowns",
+                value: formatCount(sample?.unsafeShutdowns)
+            ),
+            OverviewCardValue(
+                titleKey: "overview.mediaErrors",
+                value: formatCount(sample?.mediaErrors)
+            ),
+            OverviewCardValue(
+                titleKey: "overview.alerts",
+                value: sample == nil ? "—" : "\(latestAlertCount)"
+            ),
+            OverviewCardValue(
+                titleKey: "overview.device",
+                value: sample == nil ? "—" : "disk0",
+                usesMonospacedDigits: false
+            )
+        ]
+    }
+
+    private var latestAlertCount: Int {
+        guard let collectedAt = model.latestSample?.collectedAt else {
+            return 0
+        }
+        return model.rules.filter { rule in
+            guard rule.isEnabled, let lastTriggeredAt = rule.lastTriggeredAt else {
+                return false
+            }
+            return abs(lastTriggeredAt.timeIntervalSince(collectedAt)) <= 1
+        }.count
+    }
+
+    private func format(_ value: Double?, unit: String) -> String {
+        guard let value else {
+            return "—"
+        }
+        return "\(value.formatted(.number.precision(.fractionLength(0...1)))) \(unit)"
     }
 
     private func formatBytes(_ value: Int64?) -> String {
@@ -91,5 +158,19 @@ struct OverviewView: View {
         let terabytes = Double(value) / 1_000_000_000_000
         let digits = terabytes < 10 ? 2 : 1
         return "\(terabytes.formatted(.number.precision(.fractionLength(digits)))) TB"
+    }
+
+    private func formatCount(_ value: Int64?) -> String {
+        value?.formatted() ?? "—"
+    }
+}
+
+private struct OverviewCardValue: Identifiable {
+    let titleKey: String
+    let value: String
+    var usesMonospacedDigits = true
+
+    var id: String {
+        titleKey
     }
 }

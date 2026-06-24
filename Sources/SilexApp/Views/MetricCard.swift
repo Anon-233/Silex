@@ -13,7 +13,7 @@ struct MetricCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Circle()
                         .fill(color)
@@ -34,13 +34,17 @@ struct MetricCard: View {
                 }
             }
             .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
-            .background(isSelected ? color.opacity(0.12) : Color(nsColor: .controlBackgroundColor))
+            .frame(maxWidth: .infinity, minHeight: 108, maxHeight: 118, alignment: .leading)
+            .background(
+                isSelected
+                    ? color.opacity(0.12)
+                    : Color(nsColor: .controlBackgroundColor).opacity(0.62)
+            )
             .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(isSelected ? color : .clear, lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .stroke(isSelected ? color : Color.secondary.opacity(0.14), lineWidth: 1)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -56,4 +60,3 @@ struct MetricCard: View {
         }
     }
 }
-

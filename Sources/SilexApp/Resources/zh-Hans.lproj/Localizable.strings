@@ -72,6 +72,10 @@
 "stat.distanceToThreshold" = "距离阈值";
 "stat.latestChange" = "本次变化";
 "stat.total" = "总计";
+"stat.role" = "作用";
+"stat.trigger" = "触发";
+"stat.alertLine" = "告警线";
+"stat.belowThreshold" = "低于阈值";
 "chart.readWrite" = "读写数据量（TB）";
 "chart.temperature" = "温度（°C）";
 "chart.wear" = "寿命与备用空间（%）";

@@ -1181,6 +1181,82 @@ let tests: [HarnessTest] = [
             "default content size"
         )
     },
+    HarnessTest(name: "overview and trend views match approved metric contract") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let overview = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/OverviewView.swift"
+            ),
+            encoding: .utf8
+        )
+        let trend = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/TrendPageView.swift"
+            ),
+            encoding: .utf8
+        )
+        let presentationURL = root.appendingPathComponent(
+            "Sources/SilexApp/MetricPresentation.swift"
+        )
+        try require(
+            FileManager.default.fileExists(atPath: presentationURL.path),
+            "central metric presentation mapping"
+        )
+        let presentation = try String(
+            contentsOf: presentationURL,
+            encoding: .utf8
+        )
+
+        for approved in [
+            "overview.temperature",
+            "overview.spare",
+            "overview.used",
+            "overview.read",
+            "overview.written",
+            "overview.powerCycles",
+            "overview.unsafeShutdowns",
+            "overview.mediaErrors",
+            "overview.alerts",
+            "overview.device"
+        ] {
+            try require(overview.contains(approved), "overview metric \(approved)")
+        }
+        for removed in [
+            "internaldrive",
+            "thermometer.medium",
+            "gauge.with.dots",
+            "count: 4"
+        ] {
+            try require(!overview.contains(removed), "removed overview layout \(removed)")
+        }
+        try require(
+            trend.contains("[.powerCycles, .unsafeShutdowns, .mediaErrors]"),
+            "event metrics"
+        )
+        try require(!trend.contains(".errorLogEntries]"), "no error log event series")
+        try require(
+            trend.contains("ChartSeriesBuilder"),
+            "prepared chart series"
+        )
+        try require(
+            trend.contains("series: .value"),
+            "explicit Swift Charts series"
+        )
+        try require(
+            trend.contains("SpatialTapGesture")
+                && !trend.contains("DragGesture(minimumDistance: 0)"),
+            "chart click does not consume page drag"
+        )
+        for mapping in [
+            "case .dataWritten:",
+            "case .temperature, .availableSpare:",
+            "case .percentageUsed:",
+            "case .availableSpareThreshold, .unsafeShutdowns:",
+            "case .mediaErrors:"
+        ] {
+            try require(presentation.contains(mapping), "metric presentation \(mapping)")
+        }
+    },
     HarnessTest(name: "app packaging metadata is native and non-Dock") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let infoURL = root.appendingPathComponent("Resources/App/Info.plist")

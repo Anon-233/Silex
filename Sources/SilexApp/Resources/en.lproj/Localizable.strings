@@ -72,6 +72,10 @@
 "stat.distanceToThreshold" = "Distance to Threshold";
 "stat.latestChange" = "Latest Change";
 "stat.total" = "Total";
+"stat.role" = "Role";
+"stat.trigger" = "Triggers";
+"stat.alertLine" = "Alert line";
+"stat.belowThreshold" = "Below threshold";
 "chart.readWrite" = "Read and write data (TB)";
 "chart.temperature" = "Temperature (°C)";
 "chart.wear" = "Wear and spare (%)";
