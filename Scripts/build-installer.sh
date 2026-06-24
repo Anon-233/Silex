@@ -13,6 +13,7 @@ DMG_ROOT="$WORK/dmg-root"
 ALLOW_DOWNGRADE=0
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 INSTALLER_SIGN_IDENTITY="${INSTALLER_SIGN_IDENTITY:-}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 SMARTCTL_SOURCE="${SMARTCTL_PATH:-$(command -v smartctl || true)}"
 
 if [[ $# -lt 2 || $# -gt 3 ]]; then
@@ -43,6 +44,13 @@ fi
 if [[ -z "$SMARTCTL_SOURCE" || ! -x "$SMARTCTL_SOURCE" ]]; then
   echo "smartctl was not found; set SMARTCTL_PATH to an executable" >&2
   exit 69
+fi
+
+if [[ -n "$NOTARY_PROFILE" ]]; then
+  if [[ "$APP_SIGN_IDENTITY" == "-" || -z "$INSTALLER_SIGN_IDENTITY" ]]; then
+    echo "NOTARY_PROFILE requires both signing identities" >&2
+    exit 64
+  fi
 fi
 
 SMARTCTL_SOURCE="$(realpath "$SMARTCTL_SOURCE")"
@@ -159,6 +167,14 @@ fi
   "${PRODUCT_ARGUMENTS[@]}" \
   "$PRODUCT_PACKAGE"
 
+if [[ -n "$NOTARY_PROFILE" ]]; then
+  /usr/bin/xcrun notarytool submit "$PRODUCT_PACKAGE" \
+    --keychain-profile "$NOTARY_PROFILE" \
+    --wait
+  /usr/bin/xcrun stapler staple "$PRODUCT_PACKAGE"
+  /usr/bin/xcrun stapler validate "$PRODUCT_PACKAGE"
+fi
+
 mkdir -p "$DMG_ROOT"
 /bin/cp "$PRODUCT_PACKAGE" "$DMG_ROOT/Install Silex.pkg"
 /bin/cp "$ROOT/Packaging/README.txt" "$DMG_ROOT/README.txt"
@@ -186,6 +202,14 @@ fi
   -volname "Silex $VERSION" \
   -srcfolder "$DMG_ROOT" \
   "$DISK_IMAGE"
+
+if [[ -n "$NOTARY_PROFILE" ]]; then
+  /usr/bin/xcrun notarytool submit "$DISK_IMAGE" \
+    --keychain-profile "$NOTARY_PROFILE" \
+    --wait
+  /usr/bin/xcrun stapler staple "$DISK_IMAGE"
+  /usr/bin/xcrun stapler validate "$DISK_IMAGE"
+fi
 
 "$ROOT/Scripts/verify-installer.sh" "$VERSION"
 

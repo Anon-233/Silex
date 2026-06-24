@@ -714,6 +714,48 @@ let tests: [HarnessTest] = [
             )
         }
     },
+    HarnessTest(name: "signing and notarization are optional credentialed paths") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let buildApp = try String(
+            contentsOf: root.appendingPathComponent("Scripts/build-app.sh"),
+            encoding: .utf8
+        )
+        let buildInstaller = try String(
+            contentsOf: root.appendingPathComponent(
+                "Scripts/build-installer.sh"
+            ),
+            encoding: .utf8
+        )
+        let combined = buildApp + buildInstaller
+        for input in [
+            "APP_SIGN_IDENTITY",
+            "INSTALLER_SIGN_IDENTITY",
+            "NOTARY_PROFILE"
+        ] {
+            try require(combined.contains(input), "missing \(input)")
+        }
+        try require(
+            buildApp.contains("--options runtime")
+                && buildApp.contains("--timestamp"),
+            "hardened Developer ID app signing"
+        )
+        try require(
+            buildInstaller.contains("notarytool submit")
+                && buildInstaller.contains("--keychain-profile")
+                && buildInstaller.contains("stapler staple"),
+            "keychain-profile notarization"
+        )
+        for plaintextCredential in [
+            "--apple-id",
+            "--password",
+            "--team-id"
+        ] {
+            try require(
+                !buildInstaller.contains(plaintextCredential),
+                "plaintext credential option \(plaintextCredential)"
+            )
+        }
+    },
     HarnessTest(name: "English and Chinese localization keys match") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("Sources/SilexApp/Resources")
