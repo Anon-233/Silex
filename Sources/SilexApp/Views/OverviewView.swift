@@ -1,4 +1,5 @@
 import SwiftUI
+import SilexCore
 
 struct OverviewView: View {
     @ObservedObject var model: AppModel
@@ -15,15 +16,25 @@ struct OverviewView: View {
         HStack(spacing: 10) {
             if let sample = model.latestSample {
                 Text(sample.smartPassed ? "PASSED" : "FAILED")
-                    .font(.title3.bold())
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundStyle(
+                        sample.smartPassed
+                            ? SilexTheme.green
+                            : SilexTheme.red
+                    )
                 LocalizedLabel(sample.smartPassed ? "status.normal" : "status.failed")
-                    .font(.caption.bold())
-                    .foregroundStyle(sample.smartPassed ? .green : .red)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(
+                        sample.smartPassed
+                            ? SilexTheme.healthyPillText
+                            : SilexTheme.failedPillText
+                    )
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(
-                        (sample.smartPassed ? Color.green : Color.red)
-                            .opacity(0.12)
+                        sample.smartPassed
+                            ? SilexTheme.healthyPill
+                            : SilexTheme.failedPill
                     )
                     .clipShape(Capsule())
             } else {
@@ -36,33 +47,27 @@ struct OverviewView: View {
 
             Spacer()
 
-            if let firmware = model.latestSample?.firmwareVersion {
-                HStack(spacing: 4) {
-                    LocalizedLabel("overview.firmware")
-                    Text(firmware)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-
-            if let nextCollectionAt = model.nextCollectionAt {
-                HStack(spacing: 4) {
-                    LocalizedLabel("status.nextCollection")
-                    Text(nextCollectionAt, style: .relative)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if let sample = model.latestSample {
+                Text(statusDetail(sample: sample))
+                    .font(.system(size: 16))
+                    .foregroundStyle(SilexTheme.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
         }
         .padding(.horizontal, 12)
         .frame(height: 54)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.45))
-        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .background(SilexTheme.soft)
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(SilexTheme.tileLine, lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var metricGrid: some View {
         let cards = overviewCards
-        return Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+        return Grid(horizontalSpacing: 9, verticalSpacing: 9) {
             GridRow {
                 ForEach(Array(cards.prefix(5))) { card in
                     OverviewMetricCard(
@@ -162,6 +167,19 @@ struct OverviewView: View {
 
     private func formatCount(_ value: Int64?) -> String {
         value?.formatted() ?? "—"
+    }
+
+    private func statusDetail(sample: DriveSample) -> String {
+        let firmware = sample.firmwareVersion ?? "—"
+        guard let nextCollectionAt = model.nextCollectionAt else {
+            return "Firmware \(firmware)"
+        }
+        let remaining = max(nextCollectionAt.timeIntervalSinceNow, 0)
+        let hours = Int(remaining / 3_600)
+        let minutes = Int(remaining.truncatingRemainder(dividingBy: 3_600) / 60)
+        return "Firmware \(firmware) · "
+            + localized("status.nextCollection", locale: model.locale)
+            + " \(hours)h \(minutes)m"
     }
 }
 
