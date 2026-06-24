@@ -6,7 +6,7 @@ struct MainWindowView: View {
 
     var body: some View {
         ZStack {
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 header
 
                 Group {
@@ -26,11 +26,11 @@ struct MainWindowView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(.background)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(SilexTheme.card)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(.quaternary)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(SilexTheme.line, lineWidth: 1)
                 }
                 .contentShape(Rectangle())
                 .gesture(
@@ -50,7 +50,9 @@ struct MainWindowView: View {
 
                 navigation
             }
-            .padding(14)
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
 
             if model.isRuleOverlayPresented {
                 RuleOverlay(model: model)
@@ -58,7 +60,7 @@ struct MainWindowView: View {
                     .zIndex(10)
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(SilexTheme.background)
         .background(WindowConfigurator())
         .background(
             WindowInputAdapter(
@@ -84,23 +86,23 @@ struct MainWindowView: View {
     private var header: some View {
         HStack(spacing: 10) {
             AppMark()
-                .frame(width: 30, height: 30)
-            VStack(alignment: .leading, spacing: 2) {
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 3) {
                 LocalizedLabel("app.name")
-                    .font(.headline)
-                Text(model.latestSample?.modelName ?? localized("app.subtitle", locale: model.locale))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(SilexTheme.text)
+                Text(headerSubtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(SilexTheme.muted)
                     .lineLimit(1)
             }
             Spacer()
-            if model.currentPage >= 2 {
-                Button {
-                    model.isRuleOverlayPresented = true
-                } label: {
-                    LocalizedLabel("action.rules")
-                }
+            Button {
+                model.isRuleOverlayPresented = true
+            } label: {
+                LocalizedLabel("action.rules")
             }
+            .buttonStyle(SilexSecondaryButtonStyle())
             Button {
                 model.collectNow()
             } label: {
@@ -111,9 +113,10 @@ struct MainWindowView: View {
                     LocalizedLabel("action.collect")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(SilexPrimaryButtonStyle())
             .disabled(model.isCollecting)
         }
+        .frame(height: 44)
     }
 
     private var navigation: some View {
@@ -123,8 +126,15 @@ struct MainWindowView: View {
                     model.currentPage = index
                 } label: {
                     Capsule()
-                        .fill(index == model.currentPage ? Color.green : Color.secondary.opacity(0.3))
-                        .frame(width: index == model.currentPage ? 20 : 7, height: 7)
+                        .fill(
+                            index == model.currentPage
+                                ? SilexTheme.green
+                                : SilexTheme.line
+                        )
+                        .frame(
+                            width: index == model.currentPage ? 25 : 8,
+                            height: 8
+                        )
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(
@@ -136,7 +146,18 @@ struct MainWindowView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 12)
+        .frame(height: 24)
+    }
+
+    private var headerSubtitle: String {
+        guard let sample = model.latestSample else {
+            return localized("app.subtitle", locale: model.locale)
+        }
+        let formatter = DateFormatter()
+        formatter.locale = model.locale
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return "\(sample.modelName) · /dev/disk0 · "
+            + formatter.string(from: sample.collectedAt)
     }
 
     private func navigate(_ direction: PageDirection) {

@@ -45,7 +45,7 @@ struct SettingsView: View {
                             model.saveSettings()
                         }
                         LocalizedLabel("settings.intervalUnit")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(SilexTheme.muted)
                     }
                     Text(
                         localized(
@@ -54,7 +54,7 @@ struct SettingsView: View {
                         )
                     )
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(SilexTheme.muted)
                 }
 
                 SettingsCard(titleKey: "settings.notifications") {
@@ -109,7 +109,7 @@ struct SettingsView: View {
                 SettingsCard(titleKey: "settings.storage") {
                     Text("~/Library/Application Support/Silex")
                         .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(SilexTheme.muted)
                         .lineLimit(1)
                     Button {
                         model.showStorageInFinder()

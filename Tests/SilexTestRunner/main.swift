@@ -1372,6 +1372,78 @@ let tests: [HarnessTest] = [
             try require(presentation.contains(mapping), "metric presentation \(mapping)")
         }
     },
+    HarnessTest(name: "native visual tokens faithfully map the HTML prototype") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let themeURL = root.appendingPathComponent(
+            "Sources/SilexApp/SilexTheme.swift"
+        )
+        try require(
+            FileManager.default.fileExists(atPath: themeURL.path),
+            "shared HTML-derived theme"
+        )
+        let theme = try String(contentsOf: themeURL, encoding: .utf8)
+        let mainWindow = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/MainWindowView.swift"
+            ),
+            encoding: .utf8
+        )
+        let overview = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/OverviewView.swift"
+            ),
+            encoding: .utf8
+        )
+        let card = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/OverviewMetricCard.swift"
+            ),
+            encoding: .utf8
+        )
+
+        for token in [
+            "0xEEF2F6",
+            "0xFFFFFF",
+            "0xF8FAFC",
+            "0xD6DEE9",
+            "0x142033",
+            "0x64748B",
+            "0x2563EB",
+            "0x16A34A"
+        ] {
+            try require(theme.contains(token), "HTML color token \(token)")
+        }
+        try require(
+            mainWindow.contains("VStack(spacing: 8)")
+                && mainWindow.contains(".frame(height: 44)")
+                && mainWindow.contains(".frame(width: 28, height: 28)"),
+            "HTML shell dimensions"
+        )
+        try require(
+            mainWindow.contains("headerSubtitle")
+                && mainWindow.contains("/dev/disk0")
+                && mainWindow.contains("action.rules"),
+            "complete HTML toolbar content"
+        )
+        try require(
+            !mainWindow.contains("if model.currentPage >= 2"),
+            "rules button is available from overview"
+        )
+        try require(
+            overview.contains(".font(.system(size: 28")
+                && overview.contains("SilexTheme.green")
+                && overview.contains(".frame(height: 54)"),
+            "HTML health status hierarchy"
+        )
+        try require(
+            card.contains("SilexTheme.soft")
+                && card.contains("size: 22")
+                && card.contains("alignment: .leading")
+                && !card.contains("Spacer(minLength: 0)")
+                && !card.contains(".topLeading"),
+            "HTML vertically centered metric card"
+        )
+    },
     HarnessTest(name: "settings and rules use confirmed functional workflows") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let settings = try String(

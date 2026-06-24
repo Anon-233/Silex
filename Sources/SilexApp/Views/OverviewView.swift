@@ -42,7 +42,7 @@ struct OverviewView: View {
                     .font(.title3.bold())
                 LocalizedLabel("status.noData")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(SilexTheme.muted)
             }
 
             Spacer()

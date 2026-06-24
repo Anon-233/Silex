@@ -295,7 +295,7 @@ private struct RuleEditorRow: View {
                         TextField("", value: $draft.threshold, format: .number)
                             .frame(width: 72)
                         Text(draft.metric.unit)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(SilexTheme.muted)
                     }
                 }
             }
@@ -329,10 +329,10 @@ private struct RuleEditorRow: View {
             }
         }
         .padding(11)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.68))
+        .background(SilexTheme.soft)
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(.quaternary)
+                .stroke(SilexTheme.tileLine, lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -344,7 +344,7 @@ private struct RuleEditorRow: View {
         VStack(alignment: .leading, spacing: 3) {
             LocalizedLabel(label)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(SilexTheme.muted)
             content()
         }
     }

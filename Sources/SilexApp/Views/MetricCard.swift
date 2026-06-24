@@ -20,7 +20,7 @@ struct MetricCard: View {
                         .frame(width: 9, height: 9)
                     LocalizedLabel(titleKey)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(SilexTheme.muted)
                     Spacer()
                 }
                 Text(value)
@@ -38,11 +38,11 @@ struct MetricCard: View {
             .background(
                 isSelected
                     ? color.opacity(0.12)
-                    : Color(nsColor: .controlBackgroundColor).opacity(0.62)
+                    : SilexTheme.soft
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .stroke(isSelected ? color : Color.secondary.opacity(0.14), lineWidth: 1)
+                    .stroke(isSelected ? color : SilexTheme.tileLine, lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         }
@@ -53,7 +53,7 @@ struct MetricCard: View {
         VStack(alignment: .leading, spacing: 2) {
             LocalizedLabel(label)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(SilexTheme.muted)
             Text(value)
                 .font(.caption.bold().monospacedDigit())
                 .lineLimit(1)

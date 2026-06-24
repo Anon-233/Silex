@@ -18,8 +18,8 @@ struct OverviewMetricCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             LocalizedLabel(titleKey)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12))
+                .foregroundStyle(SilexTheme.muted)
                 .lineLimit(1)
             Group {
                 if usesMonospacedDigits {
@@ -28,17 +28,17 @@ struct OverviewMetricCard: View {
                     Text(value)
                 }
             }
-            .font(.title3.bold())
+            .font(.system(size: 22, weight: .heavy))
+            .foregroundStyle(SilexTheme.text)
             .lineLimit(1)
             .minimumScaleFactor(0.58)
-            Spacer(minLength: 0)
         }
         .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.62))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(SilexTheme.soft)
         .overlay {
             RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .stroke(.quaternary)
+                .stroke(SilexTheme.tileLine, lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
     }

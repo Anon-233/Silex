@@ -71,7 +71,7 @@ struct TrendPageView: View {
                             + "\(hours.formatted()) h"
                     )
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(SilexTheme.muted)
                 }
                 Spacer()
                 rangePicker
@@ -121,10 +121,10 @@ struct TrendPageView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(nsColor: .controlBackgroundColor).opacity(0.42))
+            .background(SilexTheme.soft)
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.quaternary)
+                    .stroke(SilexTheme.tileLine, lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
@@ -165,7 +165,7 @@ struct TrendPageView: View {
             rangeButton(.all, key: "range.all")
         }
         .padding(3)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(SilexTheme.soft)
         .clipShape(Capsule())
     }
 

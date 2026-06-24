@@ -20,7 +20,7 @@ struct MenuBarView: View {
                     } else {
                         LocalizedLabel("status.noData")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(SilexTheme.muted)
                     }
                 }
                 Spacer()
@@ -34,7 +34,7 @@ struct MenuBarView: View {
                     Spacer()
                     Text(sample.collectedAt, style: .relative)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(SilexTheme.muted)
                 }
             }
 
