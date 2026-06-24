@@ -512,6 +512,64 @@ let tests: [HarnessTest] = [
             "preinstall must preserve user data"
         )
     },
+    HarnessTest(name: "package build uses stable identifiers and fixed payloads") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let distribution = try String(
+            contentsOf: root.appendingPathComponent(
+                "Packaging/Distribution.xml.in"
+            ),
+            encoding: .utf8
+        )
+        let postinstall = try String(
+            contentsOf: root.appendingPathComponent(
+                "Packaging/Scripts/postinstall"
+            ),
+            encoding: .utf8
+        )
+        let build = try String(
+            contentsOf: root.appendingPathComponent(
+                "Scripts/build-installer.sh"
+            ),
+            encoding: .utf8
+        )
+
+        try require(
+            distribution.contains("com.anon233.Silex.pkg"),
+            "stable package ID"
+        )
+        try require(distribution.contains("26.0"), "minimum macOS")
+        try require(
+            postinstall.contains("/Library/LaunchDaemons/"),
+            "fixed daemon plist"
+        )
+        try require(
+            !postinstall.contains("launchctl enable"),
+            "preserve disabled state"
+        )
+        try require(
+            postinstall.contains("print-disabled system"),
+            "detect user disable"
+        )
+        try require(build.contains("pkgbuild"), "component package")
+        try require(build.contains("productbuild"), "product package")
+        try require(
+            build.contains("--ownership recommended"),
+            "root-owned install"
+        )
+        for path in [
+            "Applications/Silex.app",
+            "Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist",
+            "Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService",
+            "Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
+        ] {
+            try require(build.contains(path), "missing payload path \(path)")
+        }
+        try require(!build.contains("/usr/bin/sudo"), "build must not use sudo")
+        try require(
+            !build.contains("/usr/sbin/installer"),
+            "build must not install its output"
+        )
+    },
     HarnessTest(name: "English and Chinese localization keys match") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("Sources/SilexApp/Resources")

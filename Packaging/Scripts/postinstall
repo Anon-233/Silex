@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+APP="/Applications/Silex.app"
+PLIST="/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
+HELPER="/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+SMARTCTL="/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
+SERVICE_LABEL="com.anon233.Silex.SMARTService"
+
+/usr/sbin/chown -R root:wheel "$APP"
+/bin/chmod 755 "$APP" "$APP/Contents" "$APP/Contents/MacOS"
+/bin/chmod 755 "$APP/Contents/MacOS/Silex"
+
+/usr/sbin/chown root:wheel "$PLIST" "$HELPER" "$SMARTCTL"
+/bin/chmod 644 "$PLIST"
+/bin/chmod 755 "$HELPER" "$SMARTCTL"
+
+if /bin/launchctl print-disabled system |
+  /usr/bin/grep -Eq \
+    '"com\.anon233\.Silex\.SMARTService"[[:space:]]*=>[[:space:]]*true'
+then
+  echo "Silex SMART service remains disabled by user preference."
+  exit 0
+fi
+
+if /bin/launchctl print "system/$SERVICE_LABEL" >/dev/null 2>&1; then
+  /bin/launchctl bootout "system/$SERVICE_LABEL"
+fi
+
+/bin/launchctl bootstrap system "$PLIST"
+
+exit 0
