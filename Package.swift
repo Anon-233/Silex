@@ -11,7 +11,8 @@ let package = Package(
     products: [
         .library(name: "SilexCore", targets: ["SilexCore"]),
         .executable(name: "Silex", targets: ["SilexApp"]),
-        .executable(name: "SilexSMARTService", targets: ["SilexSMARTService"])
+        .executable(name: "SilexSMARTService", targets: ["SilexSMARTService"]),
+        .executable(name: "SilexTestRunner", targets: ["SilexTestRunner"])
     ],
     targets: [
         .systemLibrary(
@@ -34,31 +35,11 @@ let package = Package(
             dependencies: ["SilexCore"],
             path: "Sources/SilexSMARTService"
         ),
-        .testTarget(
-            name: "SilexCoreTests",
+        .executableTarget(
+            name: "SilexTestRunner",
             dependencies: ["SilexCore"],
-            path: "Tests/SilexCoreTests",
-            resources: [.copy("Fixtures")],
-            swiftSettings: [
-                .unsafeFlags([
-                    "-F",
-                    "/Library/Developer/CommandLineTools/Library/Developer/Frameworks"
-                ])
-            ],
-            linkerSettings: [
-                .unsafeFlags([
-                    "-F",
-                    "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                    "-Xlinker",
-                    "-rpath",
-                    "-Xlinker",
-                    "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                    "-Xlinker",
-                    "-rpath",
-                    "-Xlinker",
-                    "/Library/Developer/CommandLineTools/Library/Developer/usr/lib"
-                ])
-            ]
+            path: "Tests/SilexTestRunner",
+            resources: [.copy("Fixtures")]
         )
     ],
     swiftLanguageModes: [.v5]

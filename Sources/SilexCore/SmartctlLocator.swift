@@ -20,7 +20,7 @@ public struct SmartctlLocator: Sendable {
         }
     }
 
-    init(
+    public init(
         isExecutable: @escaping @Sendable (String) -> Bool,
         which: @escaping @Sendable () -> String?
     ) {

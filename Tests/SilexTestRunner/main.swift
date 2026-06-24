@@ -1,0 +1,379 @@
+import Foundation
+import ServiceManagement
+import SilexCore
+
+struct HarnessFailure: Error, CustomStringConvertible {
+    let description: String
+}
+
+struct HarnessTest {
+    let name: String
+    let body: () async throws -> Void
+}
+
+func require(_ condition: @autoclosure () -> Bool, _ message: String) throws {
+    guard condition() else {
+        throw HarnessFailure(description: message)
+    }
+}
+
+func requireEqual<T: Equatable>(_ actual: T, _ expected: T, _ message: String) throws {
+    guard actual == expected else {
+        throw HarnessFailure(description: "\(message): expected \(expected), got \(actual)")
+    }
+}
+
+func sample(
+    id: UUID = UUID(),
+    date: Date,
+    source: CollectionSource = .manual,
+    temperature: Double = 30,
+    readBytes: Int64 = 1_000_000,
+    writtenBytes: Int64 = 2_000_000,
+    spare: Double = 100,
+    used: Double = 0
+) -> DriveSample {
+    DriveSample(
+        id: id,
+        collectedAt: date,
+        source: source,
+        modelName: "APPLE SSD",
+        serialNumber: "serial",
+        firmwareVersion: "firmware",
+        nvmeVersion: "1.2",
+        smartPassed: true,
+        criticalWarning: 0,
+        temperatureCelsius: temperature,
+        availableSparePercent: spare,
+        availableSpareThresholdPercent: 99,
+        percentageUsed: used,
+        dataReadBytes: readBytes,
+        dataWrittenBytes: writtenBytes,
+        hostReadCommands: 100,
+        hostWriteCommands: 200,
+        controllerBusyMinutes: 3,
+        powerCycles: 10,
+        powerOnHours: 20,
+        unsafeShutdowns: 1,
+        mediaErrors: 0,
+        errorLogEntries: 0,
+        smartctlExitStatus: 0,
+        rawJSON: Data(#"{"sample":true}"#.utf8)
+    )
+}
+
+func temporaryDatabase() throws -> Database {
+    let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("SilexHarness-\(UUID().uuidString)", isDirectory: true)
+    return try Database(url: directory.appendingPathComponent("silex.sqlite3"))
+}
+
+func appleFixture() throws -> Data {
+    guard let url = Bundle.module.url(
+        forResource: "apple-nvme",
+        withExtension: "json",
+        subdirectory: "Fixtures"
+    ) else {
+        throw HarnessFailure(description: "apple-nvme.json fixture is missing")
+    }
+    return try Data(contentsOf: url)
+}
+
+final class QueueCollector: SMARTCollecting, @unchecked Sendable {
+    private var results: [SmartctlCommandResult]
+
+    init(_ results: [SmartctlCommandResult]) {
+        self.results = results
+    }
+
+    func collect() async throws -> SmartctlCommandResult {
+        guard !results.isEmpty else {
+            throw HarnessFailure(description: "collector queue is empty")
+        }
+        return results.removeFirst()
+    }
+}
+
+final class RecordingNotifier: AlertNotifying, @unchecked Sendable {
+    private(set) var matches: [AlertMatch] = []
+    var sampleCount: (() throws -> Int)?
+    private(set) var sampleCounts: [Int] = []
+
+    func post(_ match: AlertMatch) async throws {
+        matches.append(match)
+        sampleCounts.append(try sampleCount?() ?? -1)
+    }
+}
+
+final class RecordingExecutor: ProcessExecuting, @unchecked Sendable {
+    let result: ProcessResult
+    private(set) var request: ProcessRequest?
+
+    init(result: ProcessResult) {
+        self.result = result
+    }
+
+    func run(_ request: ProcessRequest) throws -> ProcessResult {
+        self.request = request
+        return result
+    }
+}
+
+final class RecordingCancellation: Cancellation, @unchecked Sendable {
+    private(set) var calls = 0
+    func cancel() { calls += 1 }
+}
+
+final class RecordingScheduler: OneShotScheduling, @unchecked Sendable {
+    private(set) var dates: [Date] = []
+    private(set) var tokens: [RecordingCancellation] = []
+
+    func schedule(at date: Date, action: @escaping @Sendable () -> Void) -> any Cancellation {
+        let token = RecordingCancellation()
+        dates.append(date)
+        tokens.append(token)
+        return token
+    }
+}
+
+final class FakeRegistration: ServiceRegistering, @unchecked Sendable {
+    var status: BackgroundServiceStatus = .notRegistered
+    private(set) var registerCalls = 0
+    private(set) var unregisterCalls = 0
+
+    func register() throws {
+        registerCalls += 1
+        status = .enabled
+    }
+
+    func unregister() throws {
+        unregisterCalls += 1
+        status = .notRegistered
+    }
+}
+
+let tests: [HarnessTest] = [
+    HarnessTest(name: "smartctl parser decodes Apple NVMe JSON") {
+        let data = try appleFixture()
+        let parsed = try SmartctlParser().parse(
+            data: data,
+            source: .manual,
+            collectedAt: Date(timeIntervalSince1970: 1_782_230_764)
+        )
+        try requireEqual(parsed.modelName, "APPLE SSD AP1024Z", "model")
+        try requireEqual(parsed.temperatureCelsius, 30, "temperature")
+        try requireEqual(parsed.dataReadBytes, 3_006_609 * 512_000, "read bytes")
+        try requireEqual(parsed.dataWrittenBytes, 2_212_292 * 512_000, "written bytes")
+        try requireEqual(parsed.rawJSON, data, "raw JSON")
+    },
+    HarnessTest(name: "smartctl parser accepts valid nonzero status") {
+        let json = """
+        {"smartctl":{"exit_status":4},"model_name":"APPLE SSD","smart_status":{"passed":false},
+        "nvme_smart_health_information_log":{"critical_warning":1,"temperature":42}}
+        """
+        let parsed = try SmartctlParser().parse(
+            data: Data(json.utf8),
+            source: .scheduled,
+            collectedAt: .now
+        )
+        try requireEqual(parsed.smartctlExitStatus, 4, "exit status")
+        try require(!parsed.smartPassed, "failed SMART state must be preserved")
+    },
+    HarnessTest(name: "SQLite round trips samples, rules, and settings") {
+        let database = try temporaryDatabase()
+        let samples = SampleRepository(database: database)
+        let rules = RuleRepository(database: database)
+        let settings = SettingsRepository(database: database)
+        let first = sample(date: Date(timeIntervalSince1970: 100))
+        let second = sample(date: Date(timeIntervalSince1970: 200), source: .scheduled)
+        try samples.insert(second)
+        try samples.insert(first)
+        try requireEqual(try samples.all(), [first, second], "sample ordering")
+
+        let rule = AlertRule(
+            name: "Warm", metric: .temperature, aggregation: .maximum,
+            windowHours: 24, comparison: .greaterThan, threshold: 60,
+            cooldownHours: 8, isEnabled: true
+        )
+        try rules.save(rule)
+        try requireEqual(try rules.all(), [rule], "rule round trip")
+
+        let value = AppSettings(
+            collectionIntervalHours: 6,
+            smartctlPath: "/opt/homebrew/bin/smartctl",
+            language: .simplifiedChinese,
+            notificationsEnabled: true,
+            launchAtLogin: true
+        )
+        try settings.save(value)
+        try requireEqual(try settings.load(), value, "settings round trip")
+        try requireEqual(try database.schemaVersion(), 1, "schema version")
+    },
+    HarnessTest(name: "history ranges and rates use real timestamps") {
+        let analyzer = HistoryAnalyzer()
+        let now = Date(timeIntervalSince1970: 4_000_000)
+        let values = [
+            sample(date: now.addingTimeInterval(-40 * 86_400)),
+            sample(date: now.addingTimeInterval(-10 * 86_400)),
+            sample(date: now.addingTimeInterval(-23 * 3_600), writtenBytes: 2_000_000_000),
+            sample(date: now.addingTimeInterval(-20.5 * 3_600), writtenBytes: 7_000_000_000)
+        ]
+        try requireEqual(analyzer.filtered(values, range: .hours24, now: now).count, 2, "24h count")
+        try requireEqual(analyzer.filtered(values, range: .days30, now: now).count, 3, "30d count")
+        let stats = analyzer.statistics(for: .dataWritten, samples: Array(values.suffix(2)))
+        try requireEqual(stats.recentRatePerHour, 2, "irregular rate")
+    },
+    HarnessTest(name: "alert engine evaluates aggregation and cooldown") {
+        let engine = AlertEngine()
+        let now = Date(timeIntervalSince1970: 100_000)
+        let values = [
+            sample(date: now.addingTimeInterval(-2 * 3_600), temperature: 20),
+            sample(date: now, temperature: 40)
+        ]
+        var rule = AlertRule(
+            name: "Warm", metric: .temperature, aggregation: .maximum,
+            windowHours: 24, comparison: .greaterThan, threshold: 30,
+            cooldownHours: 8, isEnabled: true
+        )
+        try require(engine.evaluate(rule, samples: values, now: now) != nil, "rule should trigger")
+        rule.lastTriggeredAt = now.addingTimeInterval(-3_600)
+        try require(engine.evaluate(rule, samples: values, now: now) == nil, "cooldown should suppress")
+        try require(engine.simulatedMatch(for: rule, now: now).isSimulation, "simulation flag")
+    },
+    HarnessTest(name: "smartctl runner and privileged policy are fixed") {
+        let executor = RecordingExecutor(
+            result: ProcessResult(stdout: Data("{}".utf8), stderr: Data(), exitStatus: 0)
+        )
+        _ = try SmartctlRunner(executor: executor).collect(
+            executablePath: "/opt/homebrew/bin/smartctl"
+        )
+        try requireEqual(executor.request?.arguments, ["-j", "-x", "/dev/disk0"], "arguments")
+        try require(PrivilegedSMARTPolicy.isAllowedExecutable("/opt/homebrew/bin/smartctl"), "allowed path")
+        try require(!PrivilegedSMARTPolicy.isAllowedExecutable("/tmp/smartctl"), "rejected path")
+    },
+    HarnessTest(name: "service status and console user policy") {
+        try requireEqual(ServiceController.map(.enabled), .enabled, "enabled mapping")
+        try requireEqual(ServiceController.map(.requiresApproval), .requiresApproval, "approval mapping")
+        let registration = FakeRegistration()
+        let controller = ServiceController(registration: registration)
+        try controller.enable()
+        try controller.disable()
+        try requireEqual(registration.registerCalls, 1, "register calls")
+        try requireEqual(registration.unregisterCalls, 1, "unregister calls")
+        try require(SMARTConnectionPolicy.accepts(effectiveUserID: 501, consoleUserID: 501), "console user")
+        try require(!SMARTConnectionPolicy.accepts(effectiveUserID: 0, consoleUserID: 501), "root client")
+    },
+    HarnessTest(name: "coordinator persists before notifying and simulation is safe") {
+        let database = try temporaryDatabase()
+        let samples = SampleRepository(database: database)
+        let rules = RuleRepository(database: database)
+        let notifier = RecordingNotifier()
+        notifier.sampleCount = { try samples.all().count }
+        let raw = try appleFixture()
+        let collector = QueueCollector([
+            SmartctlCommandResult(stdout: raw, stderr: Data(), exitStatus: 0)
+        ])
+        let rule = AlertRule(
+            name: "Warm", metric: .temperature, aggregation: .current,
+            windowHours: 24, comparison: .greaterThan, threshold: 20,
+            cooldownHours: 0, isEnabled: true
+        )
+        try rules.save(rule)
+        let coordinator = CollectionCoordinator(
+            collector: collector,
+            samples: samples,
+            rules: rules,
+            notifier: notifier
+        )
+        _ = try await coordinator.collect(
+            source: .manual,
+            at: Date(timeIntervalSince1970: 1_000)
+        )
+        try requireEqual(notifier.sampleCounts, [1], "sample count at notification")
+        let before = try samples.all().count
+        _ = try await coordinator.test(rule: rule, at: Date(timeIntervalSince1970: 2_000))
+        try requireEqual(try samples.all().count, before, "simulation must not write samples")
+    },
+    HarnessTest(name: "scheduler cancels prior timer and computes due date") {
+        let clock = RecordingScheduler()
+        let scheduler = CollectionScheduler(scheduler: clock)
+        scheduler.schedule(at: Date(timeIntervalSince1970: 100)) {}
+        scheduler.schedule(at: Date(timeIntervalSince1970: 200)) {}
+        try requireEqual(clock.tokens[0].calls, 1, "first timer cancellation")
+        let now = Date(timeIntervalSince1970: 100_000)
+        let next = CollectionScheduler.nextCollectionDate(
+            lastCollectedAt: now.addingTimeInterval(-2 * 3_600),
+            intervalHours: 8,
+            now: now
+        )
+        try requireEqual(next, now.addingTimeInterval(6 * 3_600), "next collection date")
+    },
+    HarnessTest(name: "exporter preserves JSON and stable CSV") {
+        let value = sample(date: Date(timeIntervalSince1970: 1_000))
+        let exporter = HistoryExporter()
+        let json = try exporter.json(samples: [value])
+        try requireEqual(try JSONDecoder.iso8601.decode([DriveSample].self, from: json), [value], "JSON")
+        let csv = String(decoding: exporter.csv(samples: [value]), as: UTF8.self)
+        try require(csv.hasPrefix("id,collectedAt,source,modelName"), "CSV header")
+    },
+    HarnessTest(name: "launch daemon plist is restricted") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let data = try Data(
+            contentsOf: root.appendingPathComponent(
+                "Resources/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
+            )
+        )
+        let plist = try PropertyListSerialization.propertyList(from: data, format: nil)
+        guard let dictionary = plist as? [String: Any] else {
+            throw HarnessFailure(description: "daemon plist is not a dictionary")
+        }
+        try requireEqual(dictionary["UserName"] as? String, "root", "daemon user")
+        try require(dictionary["KeepAlive"] == nil, "daemon must be on demand")
+    },
+    HarnessTest(name: "English and Chinese localization keys match") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("Sources/SilexApp/Resources")
+        func keys(_ path: String) throws -> Set<String> {
+            let content = try String(
+                contentsOf: root.appendingPathComponent(path),
+                encoding: .utf8
+            )
+            return Set(content.split(separator: "\n").compactMap { line in
+                let text = line.trimmingCharacters(in: .whitespaces)
+                guard text.hasPrefix("\""), let end = text.dropFirst().firstIndex(of: "\"") else {
+                    return nil
+                }
+                return String(text[text.index(after: text.startIndex)..<end])
+            })
+        }
+        let english = try keys("en.lproj/Localizable.strings")
+        let chinese = try keys("zh-Hans.lproj/Localizable.strings")
+        try requireEqual(english, chinese, "localization key parity")
+        try require(english.contains("action.collect"), "required localization key")
+    }
+]
+
+extension JSONDecoder {
+    static var iso8601: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
+}
+
+Task {
+    var failures = 0
+    for test in tests {
+        do {
+            try await test.body()
+            print("PASS \(test.name)")
+        } catch {
+            failures += 1
+            print("FAIL \(test.name): \(error)")
+        }
+    }
+    print("\(tests.count - failures)/\(tests.count) tests passed")
+    exit(failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE)
+}
+dispatchMain()
+

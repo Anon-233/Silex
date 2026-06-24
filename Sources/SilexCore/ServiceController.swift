@@ -21,7 +21,7 @@ public struct ServiceController: Sendable {
         registration = SMAppServiceRegistration()
     }
 
-    init(registration: any ServiceRegistering) {
+    public init(registration: any ServiceRegistering) {
         self.registration = registration
     }
 
@@ -82,4 +82,3 @@ public enum SMARTConnectionPolicy {
         return effectiveUserID == consoleUserID
     }
 }
-
