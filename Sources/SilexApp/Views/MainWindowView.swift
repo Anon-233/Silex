@@ -3,6 +3,7 @@ import SilexCore
 
 struct MainWindowView: View {
     @ObservedObject var model: AppModel
+    @State private var lastScrollNavigation: Date = .distantPast
 
     var body: some View {
         ZStack {
@@ -33,6 +34,24 @@ struct MainWindowView: View {
                         .stroke(SilexTheme.line, lineWidth: 1)
                 }
                 .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 20)
+                        .onEnded { value in
+                            guard Date.now.timeIntervalSince(lastScrollNavigation) > 0.3
+                            else {
+                                return
+                            }
+                            var navigation = PageNavigationState(
+                                page: model.currentPage,
+                                pageCount: model.pageCount
+                            )
+                            model.currentPage = navigation.finishDrag(
+                                width: value.translation.width,
+                                height: value.translation.height,
+                                isBlocked: model.isRuleOverlayPresented
+                            )
+                        }
+                )
 
                 navigation
             }
@@ -51,9 +70,15 @@ struct MainWindowView: View {
         .background(
             WindowInputAdapter(
                 isBlocked: { model.isRuleOverlayPresented },
-                move: navigate
+                move: navigate,
+                onScrollNavigation: { lastScrollNavigation = .now }
             )
         )
+        .onAppear {
+            if let window = NSApp.windows.first(where: { $0.title == "Silex" }) {
+                window.makeKeyAndOrderFront(nil)
+            }
+        }
         .alert(item: $model.presentedAlert) { alert in
             appAlert(alert)
         }

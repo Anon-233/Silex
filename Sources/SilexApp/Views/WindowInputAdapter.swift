@@ -5,9 +5,12 @@ import SilexCore
 struct WindowInputAdapter: NSViewRepresentable {
     let isBlocked: () -> Bool
     let move: (PageDirection) -> Void
+    var onScrollNavigation: (() -> Void)?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(isBlocked: isBlocked, move: move)
+        Coordinator(isBlocked: isBlocked,
+                     move: move,
+                     onScrollNavigation: onScrollNavigation)
     }
 
     func makeNSView(context: Context) -> NSView {
@@ -19,6 +22,7 @@ struct WindowInputAdapter: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         context.coordinator.isBlocked = isBlocked
         context.coordinator.move = move
+        context.coordinator.onScrollNavigation = onScrollNavigation
         context.coordinator.attach(to: nsView)
     }
 
@@ -30,6 +34,7 @@ struct WindowInputAdapter: NSViewRepresentable {
     final class Coordinator {
         var isBlocked: () -> Bool
         var move: (PageDirection) -> Void
+        var onScrollNavigation: (() -> Void)?
 
         private weak var view: NSView?
         private var monitor: Any?
@@ -41,10 +46,12 @@ struct WindowInputAdapter: NSViewRepresentable {
 
         init(
             isBlocked: @escaping () -> Bool,
-            move: @escaping (PageDirection) -> Void
+            move: @escaping (PageDirection) -> Void,
+            onScrollNavigation: (() -> Void)? = nil
         ) {
             self.isBlocked = isBlocked
             self.move = move
+            self.onScrollNavigation = onScrollNavigation
         }
 
         func attach(to view: NSView) {
@@ -149,6 +156,7 @@ struct WindowInputAdapter: NSViewRepresentable {
             navigatedThisGesture = true
             didNavigate = true
             move(horizontalDistance > 0 ? .previous : .next)
+            onScrollNavigation?()
             scheduleLegacyResetIfNeeded(for: event)
             return nil
         }
