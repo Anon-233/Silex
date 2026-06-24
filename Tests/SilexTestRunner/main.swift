@@ -79,6 +79,31 @@ func appleFixture() throws -> Data {
     return try Data(contentsOf: url)
 }
 
+func runScript(_ path: String, _ arguments: [String]) throws -> String {
+    let process = Process()
+    let output = Pipe()
+    let errors = Pipe()
+    let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    process.executableURL = root.appendingPathComponent(path)
+    process.arguments = arguments
+    process.standardOutput = output
+    process.standardError = errors
+    try process.run()
+    process.waitUntilExit()
+    guard process.terminationStatus == 0 else {
+        throw HarnessFailure(
+            description: String(
+                decoding: errors.fileHandleForReading.readDataToEndOfFile(),
+                as: UTF8.self
+            )
+        )
+    }
+    return String(
+        decoding: output.fileHandleForReading.readDataToEndOfFile(),
+        as: UTF8.self
+    ).trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
 final class QueueCollector: SMARTCollecting, @unchecked Sendable {
     private var results: [SmartctlCommandResult]
 
@@ -433,6 +458,58 @@ let tests: [HarnessTest] = [
                 ).path
             ),
             "network-capable install sheet must be removed"
+        )
+    },
+    HarnessTest(name: "installer version comparison and downgrade policy are deterministic") {
+        try requireEqual(
+            try runScript(
+                "Packaging/Scripts/version-compare.sh",
+                ["0.1.0", "0.2.0"]
+            ),
+            "-1",
+            "older version"
+        )
+        try requireEqual(
+            try runScript(
+                "Packaging/Scripts/version-compare.sh",
+                ["1.2.3", "1.2.3"]
+            ),
+            "0",
+            "equal version"
+        )
+        try requireEqual(
+            try runScript(
+                "Packaging/Scripts/version-compare.sh",
+                ["2.0.0", "1.9.9"]
+            ),
+            "1",
+            "newer version"
+        )
+
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let preinstall = try String(
+            contentsOf: root.appendingPathComponent(
+                "Packaging/Scripts/preinstall.in"
+            ),
+            encoding: .utf8
+        )
+        try require(
+            preinstall.contains("/Applications/Silex.app"),
+            "fixed app path"
+        )
+        try require(
+            preinstall.contains("@SILEX_VERSION@")
+                && preinstall.contains("@SILEX_BUILD@"),
+            "version placeholders"
+        )
+        try require(
+            preinstall.contains("CFBundleShortVersionString")
+                && preinstall.contains("CFBundleVersion"),
+            "both versions must be compared"
+        )
+        try require(
+            !preinstall.contains("Application Support"),
+            "preinstall must preserve user data"
         )
     },
     HarnessTest(name: "English and Chinese localization keys match") {

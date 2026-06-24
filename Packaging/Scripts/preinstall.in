@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+
+APP_PLIST="/Applications/Silex.app/Contents/Info.plist"
+SERVICE_LABEL="com.anon233.Silex.SMARTService"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+COMPARE="$SCRIPT_DIR/version-compare.sh"
+INCOMING_VERSION="@SILEX_VERSION@"
+INCOMING_BUILD="@SILEX_BUILD@"
+ALLOW_DOWNGRADE="@ALLOW_DOWNGRADE@"
+
+if [ -f "$APP_PLIST" ]; then
+  INSTALLED_VERSION=$(
+    /usr/libexec/PlistBuddy \
+      -c "Print :CFBundleShortVersionString" \
+      "$APP_PLIST" 2>/dev/null || true
+  )
+  INSTALLED_BUILD=$(
+    /usr/libexec/PlistBuddy \
+      -c "Print :CFBundleVersion" \
+      "$APP_PLIST" 2>/dev/null || true
+  )
+
+  if [ -n "$INSTALLED_VERSION" ]; then
+    VERSION_RESULT=$("$COMPARE" "$INSTALLED_VERSION" "$INCOMING_VERSION")
+    if [ "$VERSION_RESULT" -gt 0 ] && [ "$ALLOW_DOWNGRADE" != "1" ]; then
+      echo "A newer Silex version is already installed." >&2
+      exit 1
+    fi
+
+    if [ "$VERSION_RESULT" -eq 0 ] && [ -n "$INSTALLED_BUILD" ]; then
+      BUILD_RESULT=$("$COMPARE" "$INSTALLED_BUILD" "$INCOMING_BUILD")
+      if [ "$BUILD_RESULT" -gt 0 ] && [ "$ALLOW_DOWNGRADE" != "1" ]; then
+        echo "A newer Silex build is already installed." >&2
+        exit 1
+      fi
+    fi
+  fi
+fi
+
+if /bin/launchctl print "system/$SERVICE_LABEL" >/dev/null 2>&1; then
+  /bin/launchctl bootout "system/$SERVICE_LABEL"
+fi
+
+exit 0
