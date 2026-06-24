@@ -39,6 +39,15 @@ Modify these existing files:
 - `Sources/SilexApp/Views/SettingsView.swift`: two-column settings and destructive confirmation.
 - `Sources/SilexApp/Views/RuleOverlay.swift`: draft editing, validation, confirmations, and visible test result.
 - `Sources/SilexApp/Views/MenuBarView.swift`: localized live state and consistent feedback.
+- `Resources/PrivilegedHelper/Info.plist`: readable helper bundle metadata.
+- `Resources/PrivilegedHelper/en.lproj/InfoPlist.strings`: English helper display name.
+- `Resources/PrivilegedHelper/zh-Hans.lproj/InfoPlist.strings`: Chinese helper display name.
+- `Resources/LaunchDaemons/com.anon233.Silex.SMARTService.plist`: helper-bundle executable path.
+- `Packaging/Scripts/preinstall.in`: remove the legacy bare helper during an update.
+- `Packaging/Scripts/postinstall`: secure and load the helper bundle.
+- `Packaging/Uninstall Silex.applescript`: remove current and legacy helper layouts.
+- `Scripts/build-installer.sh`: assemble and sign the helper bundle.
+- `Scripts/verify-installer.sh`: verify helper metadata, signing, stable identities, and one-copy payload.
 
 ## Task 1: Add deterministic chart presentation
 
@@ -714,11 +723,79 @@ If no source changes were required, do not create an empty commit.
 ## Task 9: Build and verify replacement installers
 
 **Files:**
-- Modify only if verification exposes a packaging regression:
-  `Scripts/build-app.sh`, `Scripts/build-installer.sh`,
-  `Scripts/verify-installer.sh`, or `Packaging/*`
+- Create: `Resources/PrivilegedHelper/Info.plist`
+- Create: `Resources/PrivilegedHelper/en.lproj/InfoPlist.strings`
+- Create: `Resources/PrivilegedHelper/zh-Hans.lproj/InfoPlist.strings`
+- Modify: `Resources/LaunchDaemons/com.anon233.Silex.SMARTService.plist`
+- Modify: `Packaging/Scripts/preinstall.in`
+- Modify: `Packaging/Scripts/postinstall`
+- Modify: `Packaging/Uninstall Silex.applescript`
+- Modify: `Scripts/build-installer.sh`
+- Modify: `Scripts/verify-installer.sh`
+- Modify: `Tests/SilexTestRunner/main.swift`
 
-- [ ] **Step 1: Locate packaged smartctl**
+- [ ] **Step 1: Write failing upgrade and display-name tests**
+
+Add harness assertions that:
+
+- app bundle ID, package receipt ID, launchd label, Mach service, and
+  `/Applications/Silex.app` remain unchanged;
+- the helper payload is
+  `Library/PrivilegedHelperTools/SilexSMARTService.app`;
+- its `Info.plist` identifier is `com.anon233.Silex.SMARTService`;
+- English and Chinese `InfoPlist.strings` contain the approved display names;
+- the LaunchDaemon points to the executable inside the helper bundle;
+- preinstall boots out the stable label and removes only the fixed legacy
+  helper path;
+- postinstall preserves disabled state and secures the bundle;
+- uninstall removes both helper layouts;
+- the verifier rejects duplicate app or helper payloads and never invokes
+  `sfltool resetbtm`.
+
+- [ ] **Step 2: Run tests and verify failure**
+
+Run `swift run --disable-sandbox SilexTestRunner`.
+
+Expected: helper metadata and migration assertions fail because the daemon is
+still packaged as a bare executable.
+
+- [ ] **Step 3: Build the named helper bundle**
+
+Create a non-UI helper app bundle with:
+
+```text
+SilexSMARTService.app/
+  Contents/
+    Info.plist
+    MacOS/SilexSMARTService
+    Resources/en.lproj/InfoPlist.strings
+    Resources/zh-Hans.lproj/InfoPlist.strings
+```
+
+Use `CFBundleIdentifier = com.anon233.Silex.SMARTService`,
+`CFBundleDisplayName = Silex SMART Service`, `CFBundlePackageType = APPL`, and
+`LSUIElement = true`. Sign the complete bundle with the app identity or ad-hoc
+identity. Update the LaunchDaemon and package scripts to use its internal
+executable.
+
+- [ ] **Step 4: Implement fixed-path update migration**
+
+In preinstall, after booting out the stable label, remove only:
+
+`/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService`
+
+Postinstall applies `root:wheel` ownership to the helper bundle, `755` to its
+directories and executable, and `644` to metadata and localized strings.
+Uninstall removes both that legacy path and
+`/Library/PrivilegedHelperTools/SilexSMARTService.app`.
+
+- [ ] **Step 5: Run migration tests**
+
+Run `swift run --disable-sandbox SilexTestRunner`.
+
+Expected: all upgrade and display-name tests pass.
+
+- [ ] **Step 6: Locate packaged smartctl**
 
 Run:
 
@@ -730,7 +807,7 @@ Expected: an executable path. If not found, use the already-installed
 `/opt/homebrew/bin/smartctl`; if that path is also absent, stop the packaging
 step and report the missing local prerequisite without downloading anything.
 
-- [ ] **Step 2: Build the replacement package and disk image**
+- [ ] **Step 7: Build the replacement package and disk image**
 
 Run:
 
@@ -744,7 +821,7 @@ Expected:
 - `dist/Silex-0.1.0.dmg`
 - no installation, daemon loading, or network access.
 
-- [ ] **Step 3: Verify artifacts**
+- [ ] **Step 8: Verify artifacts**
 
 Run:
 
@@ -755,7 +832,18 @@ Scripts/verify-installer.sh 0.1.0
 Expected: application signing, package payload, non-relocatable bundle,
 offline framework checks, and DMG verification all pass.
 
-- [ ] **Step 4: Run final repository checks**
+- [ ] **Step 9: Inspect installed Background Task Management when available**
+
+After the user installs the replacement package, run:
+
+```bash
+sfltool dumpbtm | rg -n -C 5 'Silex SMART|com\\.anon233\\.Silex'
+```
+
+Expected: one Silex service record using the stable internal identifier and a
+readable name. Do not run `sfltool resetbtm`.
+
+- [ ] **Step 10: Run final repository checks**
 
 Run:
 
@@ -769,15 +857,13 @@ Expected: no uncommitted source changes; every new commit is authored by
 `Anon-233 <105512649+Anon-233@users.noreply.github.com>` and contains
 `Co-authored-by: Codex <codex@openai.com>`.
 
-- [ ] **Step 5: Commit packaging fixes if needed**
-
-If and only if packaging files changed:
+- [ ] **Step 11: Commit packaging changes**
 
 ```bash
-git add Scripts Packaging
+git add Resources/PrivilegedHelper Resources/LaunchDaemons Packaging Scripts Tests/SilexTestRunner/main.swift
 git -c user.name="Anon-233" -c user.email="105512649+Anon-233@users.noreply.github.com" \
-  commit -m "fix: package redesigned Silex app" \
+  commit -m "fix: name and migrate SMART background service" \
   --trailer "Co-authored-by: Codex <codex@openai.com>"
 ```
 
-Then rerun Steps 2–4.
+Then rerun Steps 7–10.

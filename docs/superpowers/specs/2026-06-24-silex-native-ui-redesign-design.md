@@ -28,6 +28,7 @@ verification.
 
 The work does not change the collector protocol, database schema, offline
 policy, package identifiers, daemon ownership, or installation permissions.
+The existing launchd label and Mach service name remain stable.
 
 ## Design Principles
 
@@ -234,6 +235,50 @@ Daemon controls remain status-only. The page can refresh status and open the
 macOS Login Items and Extensions settings. It cannot install, replace,
 register, or request extra privileges for the package-owned daemon.
 
+## Background Item Display and Upgrade Migration
+
+The installed daemon currently appears in macOS Background Items as
+`com.anon233.Silex.SMARTService`. Background Task Management reports it as a
+legacy daemon whose name falls back to the launchd label because the helper is
+a bare executable.
+
+The internal identity remains unchanged:
+
+- application bundle ID: `com.anon233.Silex`;
+- package receipt ID: `com.anon233.Silex.pkg`;
+- launchd label and Mach service: `com.anon233.Silex.SMARTService`;
+- application install path: `/Applications/Silex.app`.
+
+To supply a readable name without creating a second service, package the
+privileged helper as:
+
+`/Library/PrivilegedHelperTools/SilexSMARTService.app`
+
+The helper bundle contains an `Info.plist`, the daemon executable, and
+localized `InfoPlist.strings`. Its default display name is
+`Silex SMART Service`; Simplified Chinese uses `Silex SMART 后台服务`. The
+LaunchDaemon `ProgramArguments` points to the executable inside this bundle.
+
+An update package must:
+
+1. compare the installed application version and build as it does now;
+2. boot out the stable existing launchd label;
+3. remove the legacy bare helper only at the fixed old path;
+4. install the application and helper bundle at their fixed paths;
+5. preserve the user's disabled daemon state;
+6. bootstrap the same launchd label from the replacement plist.
+
+The uninstaller removes both the current helper bundle and the legacy bare
+helper path. It preserves history and settings.
+
+Verification inspects the helper bundle metadata and signing, confirms the
+LaunchDaemon still uses the stable label, confirms the package receipt and app
+bundle identifiers are unchanged, and checks that the package contains only
+one Silex application and one Silex service. It also inspects Background Task
+Management after a local installation when available. The project must not
+use `sfltool resetbtm`, because that would reset records belonging to other
+applications.
+
 Storage controls reveal the application support directory in Finder.
 JSON/CSV export and Delete History appear in a compact action area. Delete
 History requires a native destructive confirmation dialog before mutation.
@@ -423,6 +468,11 @@ daemon.
 - Light mode, dark mode, English, Chinese, empty data, and failures remain
   readable and stable.
 - No new network behavior or unnecessary permission is introduced.
+- Replacement PKG installation updates the existing app and service in place,
+  removes the legacy bare helper, and does not create duplicate Silex entries.
+- Background Task Management can derive the readable localized helper name
+  from the installed helper bundle while the internal launchd identity remains
+  stable.
 - Tests pass and replacement PKG and DMG artifacts are produced.
 
 ## Commit Attribution
