@@ -5,21 +5,26 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
 APP="$DIST/Silex.app"
 CONTENTS="$APP/Contents"
-ADHOC=false
-SMARTCTL_SOURCE="${SMARTCTL_PATH:-$(command -v smartctl || true)}"
+SILEX_VERSION="${SILEX_VERSION:-0.1.0}"
+SILEX_BUILD="${SILEX_BUILD:-1}"
+APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 
 if [[ "${1:-}" == "--adhoc" ]]; then
-  ADHOC=true
+  APP_SIGN_IDENTITY="-"
 elif [[ $# -gt 0 ]]; then
   echo "usage: Scripts/build-app.sh [--adhoc]" >&2
   exit 64
 fi
 
-if [[ -z "$SMARTCTL_SOURCE" || ! -x "$SMARTCTL_SOURCE" ]]; then
-  echo "smartctl was not found. Install it with: brew install smartmontools" >&2
-  exit 69
+if [[ ! "$SILEX_VERSION" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]]; then
+  echo "SILEX_VERSION must use numeric X.Y.Z form" >&2
+  exit 64
 fi
-SMARTCTL_SOURCE="$(realpath "$SMARTCTL_SOURCE")"
+
+if [[ ! "$SILEX_BUILD" =~ '^[1-9][0-9]*$' ]]; then
+  echo "SILEX_BUILD must be a positive integer" >&2
+  exit 64
+fi
 
 swift build \
   --package-path "$ROOT" \
@@ -36,27 +41,21 @@ rm -rf "$APP"
 mkdir -p \
   "$CONTENTS/MacOS" \
   "$CONTENTS/Resources/en.lproj" \
-  "$CONTENTS/Resources/zh-Hans.lproj" \
-  "$CONTENTS/Library/LaunchDaemons" \
-  "$CONTENTS/Library/PrivilegedHelperTools"
+  "$CONTENTS/Resources/zh-Hans.lproj"
 
 install -m 755 "$BIN_PATH/Silex" "$CONTENTS/MacOS/Silex"
-install -m 755 \
-  "$BIN_PATH/SilexSMARTService" \
-  "$CONTENTS/Library/PrivilegedHelperTools/SilexSMARTService"
-install -m 755 \
-  "$SMARTCTL_SOURCE" \
-  "$CONTENTS/Library/PrivilegedHelperTools/smartctl"
 install -m 644 "$ROOT/Resources/App/Info.plist" "$CONTENTS/Info.plist"
-install -m 644 \
-  "$ROOT/Resources/LaunchDaemons/com.anon233.Silex.SMARTService.plist" \
-  "$CONTENTS/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
 install -m 644 \
   "$ROOT/Sources/SilexApp/Resources/en.lproj/Localizable.strings" \
   "$CONTENTS/Resources/en.lproj/Localizable.strings"
 install -m 644 \
   "$ROOT/Sources/SilexApp/Resources/zh-Hans.lproj/Localizable.strings" \
   "$CONTENTS/Resources/zh-Hans.lproj/Localizable.strings"
+
+/usr/bin/plutil -replace CFBundleShortVersionString \
+  -string "$SILEX_VERSION" "$CONTENTS/Info.plist"
+/usr/bin/plutil -replace CFBundleVersion \
+  -string "$SILEX_BUILD" "$CONTENTS/Info.plist"
 
 ICONSET="$DIST/AppIcon.iconset"
 rm -rf "$ICONSET"
@@ -65,26 +64,23 @@ rm -rf "$ICONSET"
 rm -rf "$ICONSET"
 
 /usr/bin/plutil -lint "$CONTENTS/Info.plist"
-/usr/bin/plutil -lint \
-  "$CONTENTS/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
 
-if [[ "$ADHOC" == true ]]; then
-  /usr/bin/codesign \
-    --force \
-    --sign - \
-    --identifier com.anon233.Silex.smartctl \
-    "$CONTENTS/Library/PrivilegedHelperTools/smartctl"
-  /usr/bin/codesign \
-    --force \
-    --sign - \
-    --identifier com.anon233.Silex.SMARTService \
-    "$CONTENTS/Library/PrivilegedHelperTools/SilexSMARTService"
+if [[ "$APP_SIGN_IDENTITY" == "-" ]]; then
   /usr/bin/codesign \
     --force \
     --sign - \
     --entitlements "$ROOT/Resources/App/Silex.entitlements" \
     "$APP"
-  /usr/bin/codesign --verify --deep --strict "$APP"
+else
+  /usr/bin/codesign \
+    --force \
+    --sign "$APP_SIGN_IDENTITY" \
+    --options runtime \
+    --timestamp \
+    --entitlements "$ROOT/Resources/App/Silex.entitlements" \
+    "$APP"
 fi
+
+/usr/bin/codesign --verify --deep --strict "$APP"
 
 echo "$APP"

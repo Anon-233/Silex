@@ -392,6 +392,17 @@ let tests: [HarnessTest] = [
         }
         try requireEqual(dictionary["UserName"] as? String, "root", "daemon user")
         try require(dictionary["KeepAlive"] == nil, "daemon must be on demand")
+        try requireEqual(
+            dictionary["ProgramArguments"] as? [String],
+            [SMARTServiceConstants.installedServicePath],
+            "fixed installed helper"
+        )
+        try require(dictionary["BundleProgram"] == nil, "not app-relative")
+        try requireEqual(
+            dictionary["AssociatedBundleIdentifiers"] as? [String],
+            ["com.anon233.Silex"],
+            "background item association"
+        )
     },
     HarnessTest(name: "settings expose package service without Homebrew installer") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -472,9 +483,10 @@ let tests: [HarnessTest] = [
             encoding: .utf8
         )
         try require(
-            script.contains("SMARTCTL_SOURCE")
-                && script.contains("PrivilegedHelperTools/smartctl"),
-            "build must bundle smartctl instead of executing Homebrew as root"
+            !script.contains("$BIN_PATH/SilexSMARTService")
+                && !script.contains("PrivilegedHelperTools/smartctl")
+                && !script.contains("Library/LaunchDaemons"),
+            "application bundle must not contain system daemon payloads"
         )
     }
 ]

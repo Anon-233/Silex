@@ -4,8 +4,10 @@
 <dict>
     <key>Label</key>
     <string>com.anon233.Silex.SMARTService</string>
-    <key>BundleProgram</key>
-    <string>Contents/Library/PrivilegedHelperTools/SilexSMARTService</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService</string>
+    </array>
     <key>MachServices</key>
     <dict>
         <key>com.anon233.Silex.SMARTService</key>
@@ -21,4 +23,3 @@
     </array>
 </dict>
 </plist>
-
