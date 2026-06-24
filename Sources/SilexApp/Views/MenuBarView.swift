@@ -7,37 +7,36 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(alignment: .center, spacing: 16) {
-                HStack(spacing: 8) {
+            HStack(alignment: .center, spacing: 14) {
+                Image(systemName: "waveform.path.ecg")
+                    .font(.system(size: 38, weight: .light))
+                    .foregroundStyle(SilexTheme.green)
+
+                VStack(alignment: .leading, spacing: 4) {
                     LocalizedLabel("app.name")
-                        .font(.system(size: 22, weight: .bold))
-                    if let sample = model.latestSample {
-                        Text(sample.smartPassed
-                             ? localizedStatus("status.normal")
-                             : localizedStatus("status.failed"))
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(sample.smartPassed
-                                ? SilexTheme.healthyPillText
-                                : SilexTheme.failedPillText)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 3)
-                            .background(
-                                sample.smartPassed
-                                    ? SilexTheme.healthyPill
-                                    : SilexTheme.failedPill
-                            )
-                            .clipShape(Capsule())
-                    } else {
-                        LocalizedLabel("status.noData")
-                            .font(.system(size: 14))
-                            .foregroundStyle(SilexTheme.muted)
+                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.green)
+                        if let sample = model.latestSample {
+                            Text(sample.smartPassed
+                                 ? localizedStatus("status.normal")
+                                 : localizedStatus("status.failed"))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(sample.smartPassed ? .green : .red)
+                        } else {
+                            LocalizedLabel("status.noData")
+                                .font(.system(size: 14))
+                                .foregroundStyle(SilexTheme.muted)
+                        }
                     }
                 }
 
                 Spacer()
 
                 if let sample = model.latestSample {
-                    VStack(alignment: .trailing, spacing: 5) {
+                    VStack(alignment: .trailing, spacing: 6) {
                         dataLine(
                             label: localized("metric.dataRead", locale: model.locale),
                             bytes: sample.dataReadBytes,
@@ -95,7 +94,7 @@ struct MenuBarView: View {
             }
         }
         .padding(14)
-        .frame(width: 340)
+        .frame(width: 360)
     }
 
     private func menuButton(
