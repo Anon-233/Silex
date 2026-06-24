@@ -7,19 +7,27 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .top, spacing: 12) {
+                HStack(spacing: 8) {
                     LocalizedLabel("app.name")
                         .font(.system(size: 17, weight: .bold))
                     if let sample = model.latestSample {
                         Text(sample.smartPassed
                              ? localizedStatus("status.normal")
                              : localizedStatus("status.failed"))
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(sample.smartPassed ? .green : .red)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(sample.smartPassed ? SilexTheme.healthyPillText : SilexTheme.failedPillText)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(
+                                sample.smartPassed
+                                    ? SilexTheme.healthyPill
+                                    : SilexTheme.failedPill
+                            )
+                            .clipShape(Capsule())
                     } else {
                         LocalizedLabel("status.noData")
-                            .font(.system(size: 13))
+                            .font(.system(size: 12))
                             .foregroundStyle(SilexTheme.muted)
                     }
                 }
@@ -52,7 +60,10 @@ struct MenuBarView: View {
             Divider()
 
             HStack(spacing: 6) {
-                Button {
+                menuButton(
+                    label: localized("action.open.short", locale: model.locale),
+                    icon: "macwindow"
+                ) {
                     if let window = NSApp.windows.first(where: {
                         $0.title == "Silex"
                     }) {
@@ -60,45 +71,55 @@ struct MenuBarView: View {
                     } else {
                         openWindow(id: "main")
                     }
-                } label: {
-                    Label {
-                        Text(localized("action.open.short", locale: model.locale))
-                    } icon: {
-                        Image(systemName: "macwindow")
-                    }
                 }
 
-                Button {
+                menuButton(
+                    label: model.isCollecting
+                        ? localized("status.collecting", locale: model.locale)
+                        : localized("action.collect.short", locale: model.locale),
+                    icon: "arrow.clockwise"
+                ) {
                     model.collectNow()
-                } label: {
-                    Label {
-                        Text(localized("action.collect.short", locale: model.locale))
-                    } icon: {
-                        Image(systemName: "arrow.clockwise")
-                    }
                 }
                 .disabled(model.isCollecting)
 
-                Button {
+                menuButton(
+                    label: localized("action.quit.short", locale: model.locale),
+                    icon: "power"
+                ) {
                     NSApp.terminate(nil)
-                } label: {
-                    Label {
-                        Text(localized("action.quit.short", locale: model.locale))
-                    } icon: {
-                        Image(systemName: "power")
-                    }
                 }
             }
         }
         .padding(14)
-        .frame(width: 320)
+        .frame(width: 340)
+    }
+
+    private func menuButton(
+        label: String,
+        icon: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                Text(label)
+                    .font(.system(size: 12))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 26)
+        }
+        .buttonStyle(.borderless)
+        .background(SilexTheme.soft)
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 
     private func dataLine(label: String, bytes: Int64?, color: Color) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             Circle()
                 .fill(color)
-                .frame(width: 6, height: 6)
+                .frame(width: 5, height: 5)
             Text(label)
                 .font(.system(size: 11))
                 .foregroundStyle(SilexTheme.muted)
