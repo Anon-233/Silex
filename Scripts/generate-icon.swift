@@ -30,7 +30,9 @@ for (name, pixels) in variants {
     let image = NSImage(size: size)
     image.lockFocus()
 
-    // White rounded-rect background
+    let fullRect = NSRect(origin: .zero, size: size)
+
+    // Rounded-rect clip for background
     let margin = CGFloat(pixels) * 0.06
     let bgRect = NSRect(
         x: margin,
@@ -43,13 +45,19 @@ for (name, pixels) in variants {
         xRadius: CGFloat(pixels) * 0.20,
         yRadius: CGFloat(pixels) * 0.20
     )
-    NSColor.white.setFill()
-    bgPath.fill()
-    NSColor(calibratedWhite: 0.90, alpha: 1).setStroke()
-    bgPath.lineWidth = max(CGFloat(pixels) * 0.010, 1)
-    bgPath.stroke()
 
-    // Draw waveform symbol with diagonal gradient using clip mask
+    // Background: vertical gradient #FFFFFF → #F6FAFF
+    let bgGradient = NSGradient(
+        colors: [
+            NSColor(calibratedRed: 1.00, green: 1.00, blue: 1.00, alpha: 1),
+            NSColor(calibratedRed: 0.965, green: 0.980, blue: 1.00, alpha: 1)
+        ],
+        atLocations: [0.0, 1.0],
+        colorSpace: .sRGB
+    )
+    bgGradient?.draw(in: bgRect, angle: -90)
+
+    // Draw waveform symbol with shadow + gradient
     let symbolSize = CGFloat(pixels) * 0.72
     let symbolRect = NSRect(
         x: (CGFloat(pixels) - symbolSize) / 2,
@@ -57,6 +65,7 @@ for (name, pixels) in variants {
         width: symbolSize,
         height: symbolSize
     )
+
     if let symbol = NSImage(
         systemSymbolName: "waveform.path.ecg",
         accessibilityDescription: nil
@@ -65,40 +74,49 @@ for (name, pixels) in variants {
             pointSize: symbolSize,
             weight: .semibold
         )
-        if let configured = symbol.withSymbolConfiguration(config) {
-            // Render symbol as a mask image
-            let maskImage = NSImage(size: size)
-            maskImage.lockFocus()
-            configured.draw(in: symbolRect)
-            maskImage.unlockFocus()
+        guard let configured = symbol.withSymbolConfiguration(config) else { continue }
 
-            guard let maskTIFF = maskImage.tiffRepresentation,
-                  let maskRep = NSBitmapImageRep(data: maskTIFF),
-                  let maskCG = maskRep.cgImage else { continue }
+        // Render symbol into a mask image
+        let maskImage = NSImage(size: size)
+        maskImage.lockFocus()
+        configured.draw(in: symbolRect)
+        maskImage.unlockFocus()
+        guard
+            let maskTIFF = maskImage.tiffRepresentation,
+            let maskRep = NSBitmapImageRep(data: maskTIFF),
+            let maskCG = maskRep.cgImage
+        else { continue }
 
-            // Clip to the symbol shape
-            let ctx = NSGraphicsContext.current!.cgContext
-            ctx.saveGState()
-            ctx.clip(to: symbolRect, mask: maskCG)
+        let ctx = NSGraphicsContext.current!.cgContext
 
-            // Draw diagonal gradient
-            let gradient = NSGradient(
-                colors: [
-                    NSColor(calibratedRed: 1.00, green: 0.56, blue: 0.80, alpha: 1),
-                    NSColor(calibratedRed: 0.97, green: 0.98, blue: 1.00, alpha: 1),
-                    NSColor(calibratedRed: 0.56, green: 0.84, blue: 1.00, alpha: 1),
-                    NSColor(calibratedRed: 0.30, green: 0.64, blue: 1.00, alpha: 1)
-                ],
-                atLocations: [0.0, 0.35, 0.65, 1.0],
-                colorSpace: .sRGB
-            )
-            gradient?.draw(
-                from: NSPoint(x: symbolRect.minX, y: symbolRect.maxY),
-                to: NSPoint(x: symbolRect.maxX, y: symbolRect.minY),
-                options: []
-            )
-            ctx.restoreGState()
-        }
+        // Shadow pass: offset (2%, 2%) with shadow color
+        let shadowDX = CGFloat(pixels) * 0.015
+        let shadowDY = -CGFloat(pixels) * 0.015
+        ctx.saveGState()
+        let shadowRect = symbolRect.offsetBy(dx: shadowDX, dy: shadowDY)
+        ctx.clip(to: shadowRect, mask: maskCG)
+        NSColor(calibratedRed: 40/255, green: 80/255, blue: 140/255, alpha: 0.16).setFill()
+        fullRect.fill()
+        ctx.restoreGState()
+
+        // Main gradient pass
+        ctx.saveGState()
+        ctx.clip(to: symbolRect, mask: maskCG)
+        let mainGradient = NSGradient(
+            colors: [
+                NSColor(calibratedRed: 1.00, green: 0.435, blue: 0.718, alpha: 1),
+                NSColor(calibratedRed: 0.31, green: 0.55, blue: 1.00, alpha: 1),
+                NSColor(calibratedRed: 0.125, green: 0.84, blue: 0.78, alpha: 1)
+            ],
+            atLocations: [0.0, 1.0/3.0, 2.0/3.0],
+            colorSpace: .sRGB
+        )
+        mainGradient?.draw(
+            from: NSPoint(x: symbolRect.minX, y: symbolRect.maxY),
+            to: NSPoint(x: symbolRect.maxX, y: symbolRect.minY),
+            options: []
+        )
+        ctx.restoreGState()
     }
 
     image.unlockFocus()
