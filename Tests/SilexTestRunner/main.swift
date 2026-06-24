@@ -756,6 +756,26 @@ let tests: [HarnessTest] = [
             )
         }
     },
+    HarnessTest(name: "README documents personal installation and daemon control") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let readme = try String(
+            contentsOf: root.appendingPathComponent("README.md"),
+            encoding: .utf8
+        )
+        for required in [
+            "Scripts/build-installer.sh 0.1.0 1",
+            "/Applications/Silex.app",
+            "com.anon233.Silex.pkg",
+            "launchctl print system/com.anon233.Silex.SMARTService",
+            "System Settings",
+            "Background Items",
+            "offline",
+            "Developer ID",
+            "NOTARY_PROFILE"
+        ] {
+            try require(readme.contains(required), "README missing \(required)")
+        }
+    },
     HarnessTest(name: "English and Chinese localization keys match") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("Sources/SilexApp/Resources")

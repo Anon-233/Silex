@@ -22,17 +22,17 @@ SMART history of the built-in Apple SSD.
 - macOS 26 or later.
 - Apple Swift 6.3 toolchain.
 - `smartmontools` installed through Homebrew when building the app bundle.
-- A signed and notarized app in `/Applications` for real
-  `SMAppService` LaunchDaemon registration.
 
 The target Mac requires privileged access for its built-in SSD. An unprivileged
 probe returns smartctl exit status 2 with
 `IOCreatePlugInInterfaceForService failed`.
 
 For privilege safety, the root helper never executes the user-owned Homebrew
-path. `Scripts/build-app.sh` copies the selected `smartctl` binary into the
-signed app bundle, and the helper executes only that fixed sibling executable.
-Set `SMARTCTL_PATH=/path/to/smartctl` while building to choose a source path.
+path. `Scripts/build-installer.sh` copies the selected `smartctl` binary into
+the fixed package payload path
+`/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl`. The helper executes
+only that fixed sibling executable. Set `SMARTCTL_PATH=/path/to/smartctl` while
+building to choose a source path.
 
 ## Tests
 
@@ -54,17 +54,110 @@ swift build --disable-sandbox
 
 ## Build a local app bundle
 
-Create and ad-hoc sign `dist/Silex.app` without installing it:
+Create and ad-hoc sign `dist/Silex.app` without privileged system payloads:
 
 ```bash
 Scripts/build-app.sh --adhoc
 ```
 
-Generated build output and app bundles are excluded by `.gitignore`.
+## Build the personal installer
 
-Ad-hoc signing verifies package structure only. Registering the privileged
-LaunchDaemon requires a Developer ID signed and notarized build. Silex never
-registers or installs the service during tests.
+Build version `0.1.0`, build number `1`:
+
+```bash
+Scripts/build-installer.sh 0.1.0 1
+```
+
+The command generates and verifies:
+
+```text
+dist/Silex-0.1.0.pkg
+dist/Silex-0.1.0.dmg
+```
+
+Building does not install the package, request administrator privileges, or
+load the daemon. Open the DMG and double-click `Install Silex.pkg` to install.
+macOS Installer controls authentication. It may offer Touch ID when available,
+but macOS can require the administrator password.
+
+The package always uses:
+
+```text
+/Applications/Silex.app
+com.anon233.Silex.pkg
+```
+
+Installing a package with a newer version updates the existing application and
+SMART service in place. It does not create another copy. The default package
+rejects accidental downgrades and preserves the database and settings.
+
+Generated build output, applications, packages, and disk images are excluded
+by `.gitignore`.
+
+## Daemon visibility and control
+
+The package installs the on-demand daemon
+`com.anon233.Silex.SMARTService`. It exits after 30 idle seconds and is not an
+always-running process.
+
+View or disable it in:
+
+```text
+System Settings > General > Login Items & Extensions > Background Items
+```
+
+Inspect its launchd state:
+
+```bash
+launchctl print system/com.anon233.Silex.SMARTService
+```
+
+Use Console.app and filter for subsystem `com.anon233.Silex` to inspect logs.
+Disabling the daemon stops new collection; the app can still display existing
+history. Package updates do not call `launchctl enable`, so they do not
+deliberately override a disabled background-item preference.
+
+The DMG includes `Uninstall Silex.app`. It removes the app, package receipt,
+daemon, helper, and packaged smartctl after administrator authorization. It
+preserves user history by default.
+
+## Offline and permissions
+
+Silex is offline at runtime. It has no update check, download, telemetry,
+analytics upload, crash upload, GitHub API, WebView, or other network feature.
+The build verifies that application binaries do not link Network.framework,
+CFNetwork.framework, or WebKit.framework and that no network entitlement is
+present.
+
+Silex does not request Full Disk Access, Accessibility, Location, Camera,
+Microphone, Contacts, Calendar, Bluetooth, or Screen Recording. Its expected
+approvals are limited to:
+
+- administrator authorization while installing, updating, or uninstalling;
+- notification authorization when an alert needs to notify the user;
+- optional launch-at-login registration controlled in settings;
+- root access by the fixed SMART daemon to read `/dev/disk0`.
+
+## Optional Developer ID distribution
+
+The default personal build uses ad-hoc application signatures and an unsigned
+PKG. Gatekeeper may require explicit approval. With Apple Developer
+certificates, use Developer ID signing:
+
+```bash
+APP_SIGN_IDENTITY="Developer ID Application: Example" \
+INSTALLER_SIGN_IDENTITY="Developer ID Installer: Example" \
+Scripts/build-installer.sh 0.1.0 1
+```
+
+To notarize, first store credentials in a Keychain profile, then add:
+
+```bash
+NOTARY_PROFILE="silex-notary"
+```
+
+When `NOTARY_PROFILE` is set, both signing identities are required. The build
+uses only the profile name and does not accept plaintext Apple credentials.
 
 ## Data locations
 
