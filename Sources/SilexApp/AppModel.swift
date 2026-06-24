@@ -16,6 +16,9 @@ final class AppModel: ObservableObject {
     @Published var lastError: String?
     @Published var serviceStatus: BackgroundServiceStatus = .unavailable
     @Published var isRuleOverlayPresented = false
+    @Published var presentedAlert: AppAlert?
+    @Published var ruleTestPresentation: RuleTestPresentation?
+    @Published private(set) var nextCollectionAt: Date?
 
     let pageCount = 6
 
@@ -77,9 +80,15 @@ final class AppModel: ObservableObject {
         do {
             try ruleRepository?.save(rule)
             rules = try ruleRepository?.all() ?? []
+            presentedAlert = AppAlert(
+                kind: .success,
+                titleKey: "result.ruleSaved.title",
+                message: localized("result.ruleSaved.message", locale: locale)
+            )
         } catch {
             SilexLog.app.error("Saving rule failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentError(error)
         }
     }
 
@@ -101,29 +110,43 @@ final class AppModel: ObservableObject {
         do {
             try ruleRepository?.delete(id: rule.id)
             rules = try ruleRepository?.all() ?? []
+            presentedAlert = AppAlert(
+                kind: .success,
+                titleKey: "result.ruleDeleted.title",
+                message: localized("result.ruleDeleted.message", locale: locale)
+            )
         } catch {
             SilexLog.app.error("Deleting rule failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentError(error)
         }
     }
 
     func testRule(_ rule: AlertRule) {
-        guard let sampleRepository, let ruleRepository else {
-            return
-        }
-        let coordinator = CollectionCoordinator(
-            collector: SMARTServiceClient(),
-            samples: sampleRepository,
-            rules: ruleRepository,
-            notifier: SystemNotificationClient()
-        )
         Task {
-            do {
-                _ = try await coordinator.test(rule: rule)
-            } catch {
-                SilexLog.app.error("Testing rule failed: \(error.localizedDescription, privacy: .public)")
-                lastError = error.localizedDescription
+            let match = AlertEngine().simulatedMatch(for: rule, now: .now)
+            let status: RuleTestPresentation.NotificationStatus
+            if settings.notificationsEnabled {
+                do {
+                    try await SystemNotificationClient().post(match)
+                    status = .delivered
+                } catch {
+                    SilexLog.app.error(
+                        "Testing rule notification failed: \(error.localizedDescription, privacy: .public)"
+                    )
+                    status = .failed(error.localizedDescription)
+                }
+            } else {
+                status = .disabled
             }
+            ruleTestPresentation = RuleTestPresentation(
+                ruleName: match.ruleName,
+                metric: match.metric,
+                observedValue: match.observedValue,
+                comparison: rule.comparison,
+                threshold: match.threshold,
+                notificationStatus: status
+            )
         }
     }
 
@@ -137,6 +160,11 @@ final class AppModel: ObservableObject {
             string:
                 "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
         ) else {
+            presentedAlert = AppAlert(
+                kind: .error,
+                titleKey: "error.generic.title",
+                message: localized("error.settingsURL.message", locale: locale)
+            )
             return
         }
         NSWorkspace.shared.open(url)
@@ -150,6 +178,7 @@ final class AppModel: ObservableObject {
         } catch {
             SilexLog.app.error("Opening storage failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentError(error)
         }
     }
 
@@ -172,9 +201,15 @@ final class AppModel: ObservableObject {
             try sampleRepository?.deleteAll()
             samples = []
             scheduleNextCollection()
+            presentedAlert = AppAlert(
+                kind: .success,
+                titleKey: "result.historyDeleted.title",
+                message: localized("result.historyDeleted.message", locale: locale)
+            )
         } catch {
             SilexLog.database.error("Deleting history failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentError(error)
         }
     }
 
@@ -203,6 +238,11 @@ final class AppModel: ObservableObject {
         } catch {
             SilexLog.app.error("Application bootstrap failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentedAlert = AppAlert(
+                kind: .error,
+                titleKey: "error.database.title",
+                message: error.localizedDescription
+            )
         }
     }
 
@@ -217,18 +257,29 @@ final class AppModel: ObservableObject {
             collector: SMARTServiceClient(),
             samples: sampleRepository,
             rules: ruleRepository,
-            notifier: SystemNotificationClient()
+            notifier: ConditionalAlertNotifier(
+                isEnabled: settings.notificationsEnabled,
+                notifier: SystemNotificationClient()
+            )
         )
         do {
-            _ = try await coordinator.collect(source: source)
+            let outcome = try await coordinator.collect(source: source)
             samples = try sampleRepository.all()
             rules = try ruleRepository.all()
             lastError = nil
             SilexLog.collection.info("Collected SMART sample from \(source.rawValue, privacy: .public)")
             scheduleNextCollection()
+            if let failure = outcome.notificationFailures.first {
+                presentedAlert = AppAlert(
+                    kind: .error,
+                    titleKey: "error.notification.title",
+                    message: failure.message
+                )
+            }
         } catch {
             SilexLog.collection.error("Collection failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentError(error)
             await refreshServiceStatus()
         }
     }
@@ -236,6 +287,7 @@ final class AppModel: ObservableObject {
     private func scheduleNextCollection() {
         guard serviceStatus == .available else {
             scheduler.cancel()
+            nextCollectionAt = nil
             return
         }
 
@@ -247,6 +299,7 @@ final class AppModel: ObservableObject {
 
         if plan.isDueNow {
             scheduler.cancel()
+            nextCollectionAt = plan.scheduledAt
             guard !isCollecting else {
                 return
             }
@@ -256,6 +309,7 @@ final class AppModel: ObservableObject {
             return
         }
 
+        nextCollectionAt = plan.scheduledAt
         scheduler.schedule(at: plan.scheduledAt) { [weak self] in
             Task { @MainActor [weak self] in
                 await self?.collect(source: .scheduled)
@@ -290,6 +344,7 @@ final class AppModel: ObservableObject {
         } catch {
             SilexLog.app.error("Login item update failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentError(error)
         }
     }
 
@@ -304,10 +359,24 @@ final class AppModel: ObservableObject {
         }
         do {
             try data.write(to: url, options: .atomic)
+            presentedAlert = AppAlert(
+                kind: .success,
+                titleKey: "result.export.title",
+                message: localized("result.export.message", locale: locale)
+            )
         } catch {
             SilexLog.app.error("Export failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            presentError(error)
         }
+    }
+
+    private func presentError(_ error: Error) {
+        presentedAlert = AppAlert(
+            kind: .error,
+            titleKey: "error.generic.title",
+            message: error.localizedDescription
+        )
     }
 
     private func localizedDefaultRuleName() -> String {

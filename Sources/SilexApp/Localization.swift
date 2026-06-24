@@ -1,4 +1,5 @@
 import SwiftUI
+import SilexCore
 
 struct LocalizedLabel: View {
     @Environment(\.locale) private var locale
@@ -13,6 +14,25 @@ struct LocalizedLabel: View {
     }
 }
 
+struct LocalizedAppContent<Content: View>: View {
+    @ObservedObject var model: AppModel
+    private let content: () -> Content
+
+    init(
+        model: AppModel,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.model = model
+        self.content = content
+    }
+
+    var body: some View {
+        content()
+            .environment(\.locale, model.locale)
+            .id(model.settings.language)
+    }
+}
+
 func localized(_ key: String, locale: Locale) -> String {
     let bundle: Bundle = Bundle.main.bundleURL.pathExtension == "app"
         ? .main
@@ -22,4 +42,18 @@ func localized(_ key: String, locale: Locale) -> String {
         bundle: bundle,
         locale: locale
     )
+}
+
+func localizedAggregationLabel(
+    _ aggregation: RuleAggregation,
+    locale: Locale
+) -> String {
+    localized("aggregation.\(aggregation.rawValue)", locale: locale)
+}
+
+func localizedComparisonLabel(
+    _ comparison: RuleComparison,
+    locale: Locale
+) -> String {
+    localized("comparison.\(comparison.rawValue)", locale: locale)
 }

@@ -1070,6 +1070,70 @@ let tests: [HarnessTest] = [
         let chinese = try keys("zh-Hans.lproj/Localizable.strings")
         try requireEqual(english, chinese, "localization key parity")
         try require(english.contains("action.collect"), "required localization key")
+        for required in [
+            "aggregation.current",
+            "aggregation.ratePerHour",
+            "comparison.greaterThan",
+            "dialog.deleteHistory.title",
+            "dialog.unsavedRules.title",
+            "result.ruleTest.title",
+            "result.ruleTest.notificationDisabled",
+            "overview.alerts",
+            "overview.device",
+            "status.nextCollection"
+        ] {
+            try require(english.contains(required), "missing localization key \(required)")
+        }
+    },
+    HarnessTest(name: "app model exposes live presentation and notification policy") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let appModel = try String(
+            contentsOf: root.appendingPathComponent("Sources/SilexApp/AppModel.swift"),
+            encoding: .utf8
+        )
+        let main = try String(
+            contentsOf: root.appendingPathComponent("Sources/SilexApp/main.swift"),
+            encoding: .utf8
+        )
+        let localization = try String(
+            contentsOf: root.appendingPathComponent("Sources/SilexApp/Localization.swift"),
+            encoding: .utf8
+        )
+        let ruleOverlay = try String(
+            contentsOf: root.appendingPathComponent("Sources/SilexApp/Views/RuleOverlay.swift"),
+            encoding: .utf8
+        )
+
+        try require(
+            appModel.contains("@Published var presentedAlert"),
+            "app alert presentation state"
+        )
+        try require(
+            appModel.contains("@Published var ruleTestPresentation"),
+            "rule test presentation state"
+        )
+        try require(
+            appModel.contains("ConditionalAlertNotifier")
+                && appModel.contains("settings.notificationsEnabled"),
+            "notification setting policy"
+        )
+        try require(
+            (main + localization).contains(".id(model.settings.language)"),
+            "language change must rebuild localized content"
+        )
+        for hardCoded in [
+            "\"Current\"",
+            "\"Increase\"",
+            "\"Rate/h\"",
+            "\"Average\"",
+            "\"Minimum\"",
+            "\"Maximum\""
+        ] {
+            try require(
+                !ruleOverlay.contains(hardCoded),
+                "hard-coded aggregation label \(hardCoded)"
+            )
+        }
     },
     HarnessTest(name: "app packaging metadata is native and non-Dock") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)

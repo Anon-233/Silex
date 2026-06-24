@@ -6,14 +6,16 @@ struct SilexApplication: App {
 
     var body: some Scene {
         WindowGroup("Silex", id: "main") {
-            MainWindowView(model: model)
-                .environment(\.locale, model.locale)
+            LocalizedAppContent(model: model) {
+                MainWindowView(model: model)
+            }
         }
         .defaultSize(width: 900, height: 675)
 
         MenuBarExtra {
-            MenuBarView(model: model)
-                .environment(\.locale, model.locale)
+            LocalizedAppContent(model: model) {
+                MenuBarView(model: model)
+            }
         } label: {
             AppMark()
                 .frame(width: 17, height: 17)

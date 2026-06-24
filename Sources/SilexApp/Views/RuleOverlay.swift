@@ -159,14 +159,6 @@ private struct RuleEditorRow: View {
     }
 
     private func aggregationLabel(_ aggregation: RuleAggregation) -> String {
-        switch aggregation {
-        case .current: "Current"
-        case .increase: "Increase"
-        case .ratePerHour: "Rate/h"
-        case .average: "Average"
-        case .minimum: "Minimum"
-        case .maximum: "Maximum"
-        }
+        localizedAggregationLabel(aggregation, locale: locale)
     }
 }
-
