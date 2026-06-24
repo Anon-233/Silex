@@ -10,7 +10,18 @@ struct MenuBarView: View {
             HStack(alignment: .center, spacing: 14) {
                 Image(systemName: "waveform.path.ecg")
                     .font(.system(size: 38, weight: .light))
-                    .foregroundStyle(SilexTheme.green)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 1.00, green: 0.44, blue: 0.72),
+                                Color(red: 0.31, green: 0.55, blue: 1.00),
+                                Color(red: 0.13, green: 0.84, blue: 0.78)
+                            ],
+                            startPoint: .bottomLeading,
+                            endPoint: .topTrailing
+                        )
+                    )
 
                 VStack(alignment: .leading, spacing: 4) {
                     LocalizedLabel("app.name")
