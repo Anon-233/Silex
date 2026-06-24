@@ -18,7 +18,9 @@ struct SilexApplication: App {
             }
         } label: {
             Image(systemName: "s.circle")
-                .font(.system(size: 24, weight: .medium))
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
         }
         .menuBarExtraStyle(.window)
     }
