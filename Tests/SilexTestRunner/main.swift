@@ -573,6 +573,84 @@ let tests: [HarnessTest] = [
             "minimum interval"
         )
     },
+    HarnessTest(name: "page navigation is bounded and ignores blocked or vertical input") {
+        var navigation = PageNavigationState(page: 1, pageCount: 6)
+        try requireEqual(
+            navigation.finishDrag(width: -80, height: 5, isBlocked: false),
+            2,
+            "horizontal advance"
+        )
+        try requireEqual(
+            navigation.finishDrag(width: -90, height: 4, isBlocked: true),
+            2,
+            "blocked navigation"
+        )
+        try requireEqual(
+            navigation.finishDrag(width: -80, height: 100, isBlocked: false),
+            2,
+            "vertical input"
+        )
+        navigation.go(to: 99)
+        try requireEqual(navigation.page, 5, "upper page clamp")
+        navigation.move(.next, isBlocked: false)
+        try requireEqual(navigation.page, 5, "next boundary")
+        navigation.go(to: -10)
+        try requireEqual(navigation.page, 0, "lower page clamp")
+        navigation.move(.previous, isBlocked: false)
+        try requireEqual(navigation.page, 0, "previous boundary")
+    },
+    HarnessTest(name: "rule drafts validate fields and preserve persisted identity") {
+        let id = UUID()
+        let triggeredAt = Date(timeIntervalSince1970: 5_000)
+        let rule = AlertRule(
+            id: id,
+            name: "Warm",
+            metric: .temperature,
+            aggregation: .maximum,
+            windowHours: 24,
+            comparison: .greaterThan,
+            threshold: 60,
+            cooldownHours: 8,
+            isEnabled: true,
+            lastTriggeredAt: triggeredAt
+        )
+        var valid = RuleDraft(rule: rule)
+        try requireEqual(valid.validationErrors(), [], "valid draft")
+        try requireEqual(try valid.makeRule(), rule, "rule reconstruction")
+        try require(!valid.isDirty(comparedTo: rule), "unchanged draft")
+
+        valid.threshold = 61
+        try require(valid.isDirty(comparedTo: rule), "changed draft")
+
+        var invalid = RuleDraft(rule: rule)
+        invalid.name = " "
+        invalid.metric = .availableSpareThreshold
+        invalid.aggregation = .average
+        invalid.threshold = .infinity
+        invalid.windowHours = -1
+        invalid.cooldownHours = -1
+        try requireEqual(
+            invalid.validationErrors(),
+            [
+                .emptyName,
+                .invalidAggregation,
+                .invalidThreshold,
+                .invalidWindow,
+                .invalidCooldown
+            ],
+            "invalid draft fields"
+        )
+        do {
+            _ = try invalid.makeRule()
+            throw HarnessFailure(description: "invalid draft unexpectedly created a rule")
+        } catch let error as RuleDraftError {
+            try requireEqual(
+                error,
+                .validation(invalid.validationErrors()),
+                "draft validation error"
+            )
+        }
+    },
     HarnessTest(name: "privileged service has a finite idle lifetime") {
         try requireEqual(
             PrivilegedServiceIdlePolicy.timeout,
