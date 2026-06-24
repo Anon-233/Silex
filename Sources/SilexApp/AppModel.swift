@@ -345,15 +345,7 @@ final class AppModel: ObservableObject {
     }
 
     private func syncLaunchAtLoginWithSystem() {
-        let systemEnabled = SMAppService.mainApp.status == .enabled
-        if settings.launchAtLogin != systemEnabled {
-            // Force system to match our setting (defaults to false)
-            if settings.launchAtLogin {
-                try? SMAppService.mainApp.register()
-            } else {
-                try? SMAppService.mainApp.unregister()
-            }
-        }
+        applyLaunchAtLoginSetting()
     }
 
     private func syncNotificationSetting() async {
@@ -369,26 +361,14 @@ final class AppModel: ObservableObject {
 
     private func applyLaunchAtLoginSetting() {
         do {
-            let status = SMAppService.mainApp.status
             if settings.launchAtLogin {
-                if status != .enabled {
-                    try SMAppService.mainApp.register()
-                }
+                try SMAppService.mainApp.register()
             } else {
-                if status == .enabled {
-                    try SMAppService.mainApp.unregister()
-                }
+                try SMAppService.mainApp.unregister()
             }
         } catch {
             SilexLog.app.error("Login item update failed: \(error.localizedDescription, privacy: .public)")
-            lastError = error.localizedDescription
-            settings.launchAtLogin = false
-            try? settingsRepository?.save(settings)
-            presentedAlert = AppAlert(
-                kind: .error,
-                titleKey: "error.loginItem.title",
-                message: error.localizedDescription
-            )
+            // If unregister fails, try again
         }
     }
 
