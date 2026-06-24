@@ -39,8 +39,13 @@
 "settings.launchAtLogin" = "登录时启动";
 "settings.storage" = "存储位置";
 "settings.service" = "特权 SMART 服务";
+"settings.smartctl" = "smartctl";
+"settings.smartctlPlaceholder" = "smartctl 路径…";
+"settings.export" = "数据";
 "settings.exportJSON" = "导出 JSON";
 "settings.exportCSV" = "导出 CSV";
+"action.autoDetect" = "自动检测";
+"action.install" = "安装";
 "settings.deleteHistory" = "删除历史";
 "settings.followSystem" = "跟随系统";
 "settings.english" = "English";

@@ -39,8 +39,13 @@
 "settings.launchAtLogin" = "Launch at Login";
 "settings.storage" = "Storage Location";
 "settings.service" = "Privileged SMART Service";
+"settings.smartctl" = "smartctl";
+"settings.smartctlPlaceholder" = "Path to smartctl…";
+"settings.export" = "Data";
 "settings.exportJSON" = "Export JSON";
 "settings.exportCSV" = "Export CSV";
+"action.autoDetect" = "Auto Detect";
+"action.install" = "Install";
 "settings.deleteHistory" = "Delete History";
 "settings.followSystem" = "Follow System";
 "settings.english" = "English";

@@ -6,6 +6,8 @@ struct SettingsView: View {
 
     @FocusState private var intervalIsFocused: Bool
     @State private var confirmsHistoryDeletion = false
+    @State private var smartctlPathText: String = ""
+    @State private var showInstallSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -86,6 +88,36 @@ struct SettingsView: View {
                     }
                 }
 
+                SettingRow(labelKey: "settings.smartctl") {
+                    HStack(spacing: 6) {
+                        TextField(
+                            localized("settings.smartctlPlaceholder", locale: model.locale),
+                            text: $smartctlPathText
+                        )
+                        .font(.system(size: 12).monospaced())
+                        .onAppear {
+                            smartctlPathText = model.settings.smartctlPath ?? ""
+                        }
+                        .onSubmit {
+                            model.settings.smartctlPath = smartctlPathText.isEmpty
+                                ? nil : smartctlPathText
+                            model.saveSettings()
+                        }
+                        Button {
+                            autoDetectSmartctl()
+                        } label: {
+                            LocalizedLabel("action.autoDetect")
+                        }
+                        .buttonStyle(SilexSecondaryButtonStyle())
+                        Button {
+                            showInstallSheet = true
+                        } label: {
+                            LocalizedLabel("action.install")
+                        }
+                        .buttonStyle(SilexSecondaryButtonStyle())
+                    }
+                }
+
                 SettingRow(labelKey: "settings.storage") {
                     HStack(spacing: 6) {
                         Text("~/Library/Application Support/Silex")
@@ -96,6 +128,29 @@ struct SettingsView: View {
                             model.showStorageInFinder()
                         } label: {
                             LocalizedLabel("action.showInFinder")
+                        }
+                        .buttonStyle(SilexSecondaryButtonStyle())
+                    }
+                }
+
+                SettingRow(labelKey: "settings.export") {
+                    HStack(spacing: 6) {
+                        Button {
+                            model.exportJSON()
+                        } label: {
+                            LocalizedLabel("settings.exportJSON")
+                        }
+                        .buttonStyle(SilexSecondaryButtonStyle())
+                        Button {
+                            model.exportCSV()
+                        } label: {
+                            LocalizedLabel("settings.exportCSV")
+                        }
+                        .buttonStyle(SilexSecondaryButtonStyle())
+                        Button(role: .destructive) {
+                            confirmsHistoryDeletion = true
+                        } label: {
+                            LocalizedLabel("settings.deleteHistory")
                         }
                         .buttonStyle(SilexSecondaryButtonStyle())
                     }
@@ -119,29 +174,6 @@ struct SettingsView: View {
                     .foregroundStyle(SilexTheme.muted)
             }
             .frame(maxWidth: .infinity)
-
-            HStack(spacing: 8) {
-                Button {
-                    model.exportJSON()
-                } label: {
-                    LocalizedLabel("settings.exportJSON")
-                }
-                .buttonStyle(SilexSecondaryButtonStyle())
-
-                Button {
-                    model.exportCSV()
-                } label: {
-                    LocalizedLabel("settings.exportCSV")
-                }
-                .buttonStyle(SilexSecondaryButtonStyle())
-
-                Button(role: .destructive) {
-                    confirmsHistoryDeletion = true
-                } label: {
-                    LocalizedLabel("settings.deleteHistory")
-                }
-                .buttonStyle(SilexSecondaryButtonStyle())
-            }
         }
         .padding(12)
         .onChange(of: intervalIsFocused) {
@@ -162,6 +194,20 @@ struct SettingsView: View {
             ) {}
         } message: {
             Text(localized("dialog.deleteHistory.message", locale: model.locale))
+        }
+        .sheet(isPresented: $showInstallSheet) {
+            InstallSmartctlView {
+                showInstallSheet = false
+                autoDetectSmartctl()
+            }
+        }
+    }
+
+    private func autoDetectSmartctl() {
+        if let path = SmartctlLocator().locate(configuredPath: nil) {
+            smartctlPathText = path
+            model.settings.smartctlPath = path
+            model.saveSettings()
         }
     }
 
@@ -197,12 +243,10 @@ private struct SettingRow<Content: View>: View {
             LocalizedLabel(labelKey)
                 .font(.system(size: 12))
                 .foregroundStyle(SilexTheme.muted)
-                .frame(width: 102, alignment: .leading)
+                .frame(width: 110, alignment: .leading)
 
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
@@ -211,5 +255,121 @@ private struct SettingRow<Content: View>: View {
                 .fill(SilexTheme.tileLine)
                 .frame(height: 1)
         }
+    }
+}
+
+// MARK: - Smartctl Install Sheet
+
+private struct InstallSmartctlView: View {
+    let onDone: () -> Void
+
+    @State private var output: String = ""
+    @State private var isRunning = false
+    @State private var exitCode: Int32 = 0
+    @State private var didComplete = false
+    @State private var process: Process?
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("brew install smartmontools")
+                    .font(.headline)
+                Spacer()
+                if !isRunning {
+                    Button {
+                        onDone()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if didComplete {
+                HStack {
+                    Circle()
+                        .fill(exitCode == 0 ? Color.green : Color.red)
+                        .frame(width: 8, height: 8)
+                    Text(exitCode == 0
+                         ? "Installation complete"
+                         : "Installation failed (exit \(exitCode))")
+                        .font(.system(size: 13))
+                    Spacer()
+                }
+            }
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    Text(output.isEmpty ? "$ brew install smartmontools\nWaiting…" : output)
+                        .font(.system(size: 12).monospaced())
+                        .foregroundStyle(Color(.displayP3, white: 0.85, opacity: 1))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .id("bottom")
+                }
+                .onChange(of: output) {
+                    withAnimation {
+                        proxy.scrollTo("bottom", anchor: .bottom)
+                    }
+                }
+            }
+            .frame(height: 220)
+            .padding(12)
+            .background(Color.black)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            HStack {
+                if !didComplete {
+                    Button {
+                        startInstall()
+                    } label: {
+                        Label("Run", systemImage: "play.fill")
+                            .frame(minWidth: 80)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isRunning)
+                }
+                Spacer()
+                if didComplete {
+                    Button {
+                        onDone()
+                    } label: {
+                        Text("Done")
+                            .frame(minWidth: 80)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+        }
+        .padding(16)
+        .frame(width: 600)
+    }
+
+    private func startInstall() {
+        isRunning = true
+        output = "$ brew install smartmontools\n"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/brew")
+        process.arguments = ["install", "smartmontools"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        pipe.fileHandleForReading.readabilityHandler = { handle in
+            let data = handle.availableData
+            guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
+            DispatchQueue.main.async {
+                output += text
+            }
+        }
+        process.terminationHandler = { proc in
+            DispatchQueue.main.async {
+                isRunning = false
+                didComplete = true
+                exitCode = proc.terminationStatus
+                output += "\n$ echo $?\n\(exitCode)"
+            }
+        }
+        self.process = process
+        try? process.run()
     }
 }

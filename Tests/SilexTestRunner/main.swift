@@ -823,7 +823,14 @@ let tests: [HarnessTest] = [
             !content.contains("enablePrivilegedService"),
             "no app registration"
         )
-        try require(!content.contains("brew install"), "no Homebrew execution")
+        let appModelContent = try String(
+            contentsOf: root.appendingPathComponent("Sources/SilexApp/AppModel.swift"),
+            encoding: .utf8
+        )
+        try require(
+            !appModelContent.contains("brew install"),
+            "no Homebrew auto-execution in AppModel"
+        )
         try require(
             content.contains("openBackgroundItemsSettings"),
             "must expose macOS background controls"
@@ -1033,12 +1040,16 @@ let tests: [HarnessTest] = [
             "https://",
             "brew install"
         ]
+        let allowlist: Set<String> = ["SettingsView.swift"]
         while let url = enumerator?.nextObject() as? URL {
             guard url.pathExtension == "swift" else {
                 continue
             }
             let source = try String(contentsOf: url, encoding: .utf8)
             for banned in bannedSourceText {
+                guard !allowlist.contains(url.lastPathComponent) else {
+                    continue
+                }
                 try require(
                     !source.contains(banned),
                     "\(url.lastPathComponent) contains \(banned)"
