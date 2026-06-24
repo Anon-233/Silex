@@ -244,6 +244,110 @@ let tests: [HarnessTest] = [
         let stats = analyzer.statistics(for: .dataWritten, samples: Array(values.suffix(2)))
         try requireEqual(stats.recentRatePerHour, 2, "irregular rate")
     },
+    HarnessTest(name: "chart builder keeps read and write as separate ordered series") {
+        let first = sample(
+            date: Date(timeIntervalSince1970: 100),
+            readBytes: 1_000_000_000_000,
+            writtenBytes: 2_000_000_000_000
+        )
+        let second = sample(
+            date: Date(timeIntervalSince1970: 200),
+            readBytes: 3_000_000_000_000,
+            writtenBytes: 4_000_000_000_000
+        )
+        let series = ChartSeriesBuilder().build(
+            metrics: [.dataRead, .dataWritten],
+            samples: [second, first],
+            range: .all,
+            now: second.collectedAt
+        ) { metric, value in
+            switch metric {
+            case .dataRead, .dataWritten:
+                value / 1_000
+            default:
+                value
+            }
+        }
+
+        try requireEqual(
+            series.map(\.metric),
+            [.dataRead, .dataWritten],
+            "read/write series identity"
+        )
+        try requireEqual(
+            series[0].points.map(\.date),
+            [first.collectedAt, second.collectedAt],
+            "read point order"
+        )
+        try requireEqual(
+            series[1].points.map(\.date),
+            [first.collectedAt, second.collectedAt],
+            "write point order"
+        )
+        try requireEqual(
+            series[0].points.map(\.value),
+            [1, 3],
+            "read values"
+        )
+        try requireEqual(
+            series[1].points.map(\.value),
+            [2, 4],
+            "write values"
+        )
+    },
+    HarnessTest(name: "chart builder keeps wear metrics separate and deduplicates timestamps") {
+        let duplicateDate = Date(timeIntervalSince1970: 100)
+        let first = sample(date: duplicateDate, spare: 100, used: 0)
+        let replacement = sample(date: duplicateDate, spare: 98, used: 2)
+        let second = sample(
+            date: Date(timeIntervalSince1970: 200),
+            spare: 97,
+            used: 3
+        )
+        let series = ChartSeriesBuilder().build(
+            metrics: [.availableSpare, .percentageUsed, .availableSpareThreshold],
+            samples: [first, replacement, second],
+            range: .all,
+            now: second.collectedAt
+        )
+
+        try requireEqual(
+            series.map(\.metric),
+            [.availableSpare, .percentageUsed, .availableSpareThreshold],
+            "wear series identity"
+        )
+        try requireEqual(series[0].points.map(\.value), [98, 97], "spare deduplication")
+        try requireEqual(series[1].points.map(\.value), [2, 3], "used deduplication")
+        try requireEqual(series[2].points.map(\.value), [99, 99], "threshold series")
+    },
+    HarnessTest(name: "chart axis domains are finite and deterministic") {
+        let builder = ChartAxisDomainBuilder()
+        try requireEqual(
+            builder.domain(values: [10, 20], kind: .nonnegative),
+            ChartAxisDomain(lower: 9, upper: 21),
+            "normal domain"
+        )
+        try requireEqual(
+            builder.domain(values: [0, 0], kind: .nonnegative),
+            ChartAxisDomain(lower: 0, upper: 1),
+            "zero domain"
+        )
+        try requireEqual(
+            builder.domain(values: [100, 100], kind: .percentage),
+            ChartAxisDomain(lower: 99, upper: 100),
+            "full percentage domain"
+        )
+        try requireEqual(
+            builder.domain(values: [50, 50], kind: .percentage),
+            ChartAxisDomain(lower: 47.5, upper: 52.5),
+            "centered percentage domain"
+        )
+        try requireEqual(
+            builder.domain(values: [], kind: .unconstrained),
+            nil,
+            "empty domain"
+        )
+    },
     HarnessTest(name: "alert engine evaluates aggregation and cooldown") {
         let engine = AlertEngine()
         let now = Date(timeIntervalSince1970: 100_000)
