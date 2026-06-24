@@ -229,7 +229,7 @@ let tests: [HarnessTest] = [
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .maximum,
             comparison: .greaterThan, threshold: 60,
-            cooldownHours: 8, isEnabled: true
+            isEnabled: true
         )
         try rules.save(rule)
         try requireEqual(try rules.all(), [rule], "rule round trip")
@@ -373,11 +373,11 @@ let tests: [HarnessTest] = [
         var rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .maximum,
             comparison: .greaterThan, threshold: 30,
-            cooldownHours: 8, isEnabled: true
+            isEnabled: true
         )
         try require(engine.evaluate(rule, samples: values, now: now) != nil, "rule should trigger")
         rule.lastTriggeredAt = now.addingTimeInterval(-3_600)
-        try require(engine.evaluate(rule, samples: values, now: now) == nil, "cooldown should suppress")
+        try require(engine.evaluate(rule, samples: values, now: now) != nil, "rule should trigger regardless of lastTriggeredAt")
         try require(engine.simulatedMatch(for: rule, now: now).isSimulation, "simulation flag")
     },
     HarnessTest(name: "smartctl runner and bundled privileged policy are fixed") {
@@ -433,7 +433,7 @@ let tests: [HarnessTest] = [
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .current,
             comparison: .greaterThan, threshold: 20,
-            cooldownHours: 0, isEnabled: true
+            isEnabled: true
         )
         try rules.save(rule)
         let coordinator = CollectionCoordinator(
@@ -455,7 +455,7 @@ let tests: [HarnessTest] = [
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .current,
             comparison: .greaterThan, threshold: 20,
-            cooldownHours: 0, isEnabled: true
+            isEnabled: true
         )
         let match = AlertEngine().simulatedMatch(
             for: rule,
@@ -490,7 +490,7 @@ let tests: [HarnessTest] = [
         let rule = AlertRule(
             name: "Warm", metric: .temperature, aggregation: .current,
             comparison: .greaterThan, threshold: 20,
-            cooldownHours: 0, isEnabled: true
+            isEnabled: true
         )
         try rules.save(rule)
         let collectedAt = Date(timeIntervalSince1970: 2_000)
@@ -610,7 +610,6 @@ let tests: [HarnessTest] = [
             
             comparison: .greaterThan,
             threshold: 60,
-            cooldownHours: 8,
             isEnabled: true,
             lastTriggeredAt: triggeredAt
         )
@@ -627,16 +626,14 @@ let tests: [HarnessTest] = [
         invalid.metric = .availableSpareThreshold
         invalid.aggregation = .average
         invalid.threshold = .infinity
-        invalid.cooldownHours = -1
-        try requireEqual(
+                try requireEqual(
             invalid.validationErrors(),
             [
                 .emptyName,
                 .invalidAggregation,
                 .invalidThreshold,
                 
-                .invalidCooldown
-            ],
+                            ],
             "invalid draft fields"
         )
         do {

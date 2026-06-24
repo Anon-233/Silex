@@ -103,7 +103,6 @@ final class AppModel: ObservableObject {
             aggregation: .maximum,
             comparison: .greaterThan,
             threshold: 60,
-            cooldownHours: 8,
             isEnabled: true
         )
         saveRule(rule)

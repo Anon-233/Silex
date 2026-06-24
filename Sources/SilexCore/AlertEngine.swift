@@ -38,7 +38,7 @@ public struct AlertEngine: Sendable {
         samples: [DriveSample],
         now: Date
     ) -> AlertMatch? {
-        guard rule.isEnabled, !isCoolingDown(rule, now: now) else {
+        guard rule.isEnabled else {
             return nil
         }
         guard let observed = observedValue(for: rule, samples: samples) else {
@@ -123,10 +123,4 @@ public struct AlertEngine: Sendable {
         )
     }
 
-    private func isCoolingDown(_ rule: AlertRule, now: Date) -> Bool {
-        guard let lastTriggeredAt = rule.lastTriggeredAt else {
-            return false
-        }
-        return now.timeIntervalSince(lastTriggeredAt) < max(rule.cooldownHours, 0) * 3_600
-    }
 }

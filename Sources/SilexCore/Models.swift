@@ -18,6 +18,10 @@ public enum Metric: String, Codable, CaseIterable, Sendable {
     case mediaErrors
 }
 
+public extension Metric {
+    static let ruleMetrics: [Metric] = [.temperature, .dataRead, .dataWritten]
+}
+
 public enum RuleAggregation: String, Codable, CaseIterable, Sendable {
     case current
     case increase
@@ -41,7 +45,6 @@ public struct AlertRule: Codable, Equatable, Identifiable, Sendable {
     public var aggregation: RuleAggregation
     public var comparison: RuleComparison
     public var threshold: Double
-    public var cooldownHours: Double
     public var isEnabled: Bool
     public var lastTriggeredAt: Date?
 
@@ -52,7 +55,6 @@ public struct AlertRule: Codable, Equatable, Identifiable, Sendable {
         aggregation: RuleAggregation,
         comparison: RuleComparison,
         threshold: Double,
-        cooldownHours: Double,
         isEnabled: Bool,
         lastTriggeredAt: Date? = nil
     ) {
@@ -62,7 +64,6 @@ public struct AlertRule: Codable, Equatable, Identifiable, Sendable {
         self.aggregation = aggregation
         self.comparison = comparison
         self.threshold = threshold
-        self.cooldownHours = cooldownHours
         self.isEnabled = isEnabled
         self.lastTriggeredAt = lastTriggeredAt
     }

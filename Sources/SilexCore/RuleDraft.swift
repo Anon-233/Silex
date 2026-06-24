@@ -4,7 +4,6 @@ public enum RuleDraftValidationError: Equatable, Sendable {
     case emptyName
     case invalidAggregation
     case invalidThreshold
-    case invalidCooldown
 }
 
 public enum RuleDraftError: Error, Equatable, Sendable {
@@ -18,7 +17,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
     public var aggregation: RuleAggregation
     public var comparison: RuleComparison
     public var threshold: Double
-    public var cooldownHours: Double
     public var isEnabled: Bool
     public let lastTriggeredAt: Date?
 
@@ -29,7 +27,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
         aggregation = rule.aggregation
         comparison = rule.comparison
         threshold = rule.threshold
-        cooldownHours = rule.cooldownHours
         isEnabled = rule.isEnabled
         lastTriggeredAt = rule.lastTriggeredAt
     }
@@ -44,9 +41,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
         }
         if !threshold.isFinite {
             errors.append(.invalidThreshold)
-        }
-        if !cooldownHours.isFinite || cooldownHours < 0 {
-            errors.append(.invalidCooldown)
         }
         return errors
     }
@@ -63,7 +57,6 @@ public struct RuleDraft: Equatable, Identifiable, Sendable {
             aggregation: aggregation,
             comparison: comparison,
             threshold: threshold,
-            cooldownHours: cooldownHours,
             isEnabled: isEnabled,
             lastTriggeredAt: lastTriggeredAt
         )

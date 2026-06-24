@@ -157,7 +157,6 @@ struct RuleOverlay: View {
             aggregation: .maximum,
             comparison: .greaterThan,
             threshold: 60,
-            cooldownHours: 8,
             isEnabled: true
         )
         drafts.insert(RuleDraft(rule: rule), at: 0)
@@ -256,7 +255,7 @@ private struct RuleEditorRow: View {
             HStack(alignment: .bottom, spacing: 8) {
                 field("rule.metric") {
                     Picker("", selection: $draft.metric) {
-                        ForEach(Metric.allCases, id: \.self) { metric in
+                        ForEach(Metric.ruleMetrics, id: \.self) { metric in
                             Text(localized(metric.titleKey, locale: locale))
                                 .tag(metric)
                         }
@@ -300,10 +299,6 @@ private struct RuleEditorRow: View {
             }
 
             HStack(alignment: .bottom, spacing: 8) {
-                field("rule.cooldown") {
-                    TextField("", value: $draft.cooldownHours, format: .number)
-                        .frame(width: 78)
-                }
                 Spacer()
                 Button(action: test) {
                     LocalizedLabel("rule.test")
@@ -354,8 +349,6 @@ private extension RuleDraftValidationError {
             "rule.validation.invalidAggregation"
         case .invalidThreshold:
             "rule.validation.invalidThreshold"
-        case .invalidCooldown:
-            "rule.validation.invalidCooldown"
         }
     }
 }
