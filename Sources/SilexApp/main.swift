@@ -18,7 +18,7 @@ struct SilexApplication: App {
             }
         } label: {
             Image(systemName: "internaldrive")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 16, weight: .medium))
         }
         .menuBarExtraStyle(.window)
     }

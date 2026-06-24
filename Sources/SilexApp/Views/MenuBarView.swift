@@ -6,19 +6,21 @@ struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 16) {
                 HStack(spacing: 8) {
                     LocalizedLabel("app.name")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                     if let sample = model.latestSample {
                         Text(sample.smartPassed
                              ? localizedStatus("status.normal")
                              : localizedStatus("status.failed"))
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(sample.smartPassed ? SilexTheme.healthyPillText : SilexTheme.failedPillText)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(sample.smartPassed
+                                ? SilexTheme.healthyPillText
+                                : SilexTheme.failedPillText)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 3)
                             .background(
                                 sample.smartPassed
                                     ? SilexTheme.healthyPill
@@ -27,7 +29,7 @@ struct MenuBarView: View {
                             .clipShape(Capsule())
                     } else {
                         LocalizedLabel("status.noData")
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                             .foregroundStyle(SilexTheme.muted)
                     }
                 }
@@ -35,7 +37,7 @@ struct MenuBarView: View {
                 Spacer()
 
                 if let sample = model.latestSample {
-                    VStack(alignment: .trailing, spacing: 4) {
+                    VStack(alignment: .trailing, spacing: 5) {
                         dataLine(
                             label: localized("metric.dataRead", locale: model.locale),
                             bytes: sample.dataReadBytes,
@@ -67,6 +69,7 @@ struct MenuBarView: View {
                     if let window = NSApp.windows.first(where: {
                         $0.title == "Silex"
                     }) {
+                        NSApp.activate()
                         window.makeKeyAndOrderFront(nil)
                     } else {
                         openWindow(id: "main")
@@ -108,7 +111,7 @@ struct MenuBarView: View {
                     .font(.system(size: 12))
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 26)
+            .frame(height: 28)
         }
         .buttonStyle(.borderless)
         .background(SilexTheme.soft)
@@ -116,15 +119,15 @@ struct MenuBarView: View {
     }
 
     private func dataLine(label: String, bytes: Int64?, color: Color) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             Circle()
                 .fill(color)
-                .frame(width: 5, height: 5)
+                .frame(width: 6, height: 6)
             Text(label)
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundStyle(SilexTheme.muted)
             Text(formatTB(bytes))
-                .font(.system(size: 12, weight: .medium).monospacedDigit())
+                .font(.system(size: 14, weight: .medium).monospacedDigit())
         }
     }
 
