@@ -237,10 +237,12 @@ final class AppModel: ObservableObject {
             samples = try sampleRepository.all()
             rules = try ruleRepository.all()
             settings = try settingsRepository.load()
+            migrateDefaultsIfNeeded()
             applyLaunchAtLoginSetting()
             observeWake()
             Task { [weak self] in
                 await self?.refreshServiceStatus()
+                await self?.syncNotificationSetting()
             }
         } catch {
             SilexLog.app.error("Application bootstrap failed: \(error.localizedDescription, privacy: .public)")
@@ -345,6 +347,29 @@ final class AppModel: ObservableObject {
             Task { @MainActor [weak self] in
                 self?.scheduleNextCollection()
             }
+        }
+    }
+
+    private func migrateDefaultsIfNeeded() {
+        let migrationKey = "SilexDidMigrateDefaults"
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+        UserDefaults.standard.set(true, forKey: migrationKey)
+        // Force launchAtLogin to false for upgrades from old default
+        if settings.launchAtLogin {
+            settings.launchAtLogin = false
+            try? settingsRepository?.save(settings)
+            try? SMAppService.mainApp.unregister()
+        }
+    }
+
+    private func syncNotificationSetting() async {
+        let center = UNUserNotificationCenter.current()
+        let notifSettings = await center.notificationSettings()
+        let systemGranted = notifSettings.authorizationStatus == .authorized
+            || notifSettings.authorizationStatus == .provisional
+        if settings.notificationsEnabled != systemGranted {
+            settings.notificationsEnabled = systemGranted
+            try? settingsRepository?.save(settings)
         }
     }
 
