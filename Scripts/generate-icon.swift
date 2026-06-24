@@ -30,54 +30,42 @@ for (name, pixels) in variants {
     let image = NSImage(size: size)
     image.lockFocus()
 
-    NSColor.clear.setFill()
-    NSRect(origin: .zero, size: size).fill()
+    let rect = NSRect(origin: .zero, size: size)
 
+    // Background: rounded rectangle
     let margin = CGFloat(pixels) * 0.08
-    let backgroundRect = NSRect(
+    let bgRect = NSRect(
         x: margin,
         y: margin,
         width: CGFloat(pixels) - margin * 2,
         height: CGFloat(pixels) - margin * 2
     )
-    let background = NSBezierPath(
-        roundedRect: backgroundRect,
+    let bgPath = NSBezierPath(
+        roundedRect: bgRect,
         xRadius: CGFloat(pixels) * 0.20,
         yRadius: CGFloat(pixels) * 0.20
     )
-    NSColor(calibratedRed: 0.96, green: 0.97, blue: 0.99, alpha: 1).setFill()
-    background.fill()
+    NSColor(calibratedRed: 0.09, green: 0.38, blue: 0.80, alpha: 1).setFill()
+    bgPath.fill()
 
-    let outerInset = CGFloat(pixels) * 0.24
-    let outerRect = NSRect(
-        x: outerInset,
-        y: outerInset,
-        width: CGFloat(pixels) - outerInset * 2,
-        height: CGFloat(pixels) - outerInset * 2
+    // SF Symbol: waveform.path.ecg
+    let symbolSize = CGFloat(pixels) * 0.50
+    let symbolRect = NSRect(
+        x: (CGFloat(pixels) - symbolSize) / 2,
+        y: (CGFloat(pixels) - symbolSize) / 2,
+        width: symbolSize,
+        height: symbolSize
     )
-    let outer = NSBezierPath(
-        roundedRect: outerRect,
-        xRadius: CGFloat(pixels) * 0.09,
-        yRadius: CGFloat(pixels) * 0.09
-    )
-    outer.lineWidth = max(CGFloat(pixels) * 0.035, 1)
-    NSColor(calibratedRed: 0.28, green: 0.34, blue: 0.42, alpha: 1).setStroke()
-    outer.stroke()
-
-    let innerInset = CGFloat(pixels) * 0.34
-    let innerRect = NSRect(
-        x: innerInset,
-        y: innerInset,
-        width: CGFloat(pixels) - innerInset * 2,
-        height: CGFloat(pixels) - innerInset * 2
-    )
-    let inner = NSBezierPath(
-        roundedRect: innerRect,
-        xRadius: CGFloat(pixels) * 0.045,
-        yRadius: CGFloat(pixels) * 0.045
-    )
-    NSColor(calibratedRed: 0.28, green: 0.34, blue: 0.42, alpha: 1).setFill()
-    inner.fill()
+    if let symbol = NSImage(
+        systemSymbolName: "waveform.path.ecg",
+        accessibilityDescription: nil
+    ) {
+        let config = NSImage.SymbolConfiguration(pointSize: symbolSize, weight: .semibold)
+            .applying(.init(paletteColors: [.white]))
+        if let configured = symbol.withSymbolConfiguration(config) {
+            configured.draw(in: symbolRect)
+        }
+    }
 
     image.unlockFocus()
 
@@ -91,4 +79,3 @@ for (name, pixels) in variants {
     }
     try png.write(to: output.appendingPathComponent(name), options: .atomic)
 }
-
