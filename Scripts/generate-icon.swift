@@ -50,7 +50,7 @@ for (name, pixels) in variants {
     bgPath.stroke()
 
     // Draw waveform symbol with diagonal gradient using clip mask
-    let symbolSize = CGFloat(pixels) * 0.50
+    let symbolSize = CGFloat(pixels) * 0.72
     let symbolRect = NSRect(
         x: (CGFloat(pixels) - symbolSize) / 2,
         y: (CGFloat(pixels) - symbolSize) / 2,
