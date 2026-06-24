@@ -29,7 +29,6 @@ struct LocalizedAppContent<Content: View>: View {
     var body: some View {
         content()
             .environment(\.locale, model.locale)
-            .id(model.settings.language)
     }
 }
 

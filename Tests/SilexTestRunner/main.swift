@@ -1233,8 +1233,8 @@ let tests: [HarnessTest] = [
             "notification setting policy"
         )
         try require(
-            (main + localization).contains(".id(model.settings.language)"),
-            "language change must rebuild localized content"
+            (main + localization).contains(".environment(\\.locale, model.locale)"),
+            "language change must propagate locale environment"
         )
         for hardCoded in [
             "\"Current\"",
