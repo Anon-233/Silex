@@ -49,7 +49,11 @@ struct MenuBarView: View {
 
             Button {
                 openWindow(id: "main")
-                NSApp.activate(ignoringOtherApps: true)
+                DispatchQueue.main.async {
+                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.windows.first { $0.title == "Silex" }?
+                        .makeKeyAndOrderFront(nil)
+                }
             } label: {
                 Label {
                     LocalizedLabel("action.open")
