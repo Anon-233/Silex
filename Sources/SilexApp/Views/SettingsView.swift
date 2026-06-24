@@ -1,6 +1,5 @@
 import SwiftUI
 import SilexCore
-import UserNotifications
 
 struct SettingsView: View {
     @ObservedObject var model: AppModel
@@ -45,18 +44,6 @@ struct SettingsView: View {
                         LocalizedLabel("settings.intervalUnit")
                             .foregroundStyle(SilexTheme.muted)
                     }
-                }
-
-                SettingRow(labelKey: "settings.notifications") {
-                    Toggle("", isOn: $model.settings.notificationsEnabled)
-                        .labelsHidden()
-                        .onChange(of: model.settings.notificationsEnabled) { newValue in
-                            if newValue {
-                                Task { await requestAndSaveNotification() }
-                            } else {
-                                model.saveSettings()
-                            }
-                        }
                 }
 
                 SettingRow(labelKey: "settings.launchAtLogin") {
@@ -171,13 +158,19 @@ struct SettingsView: View {
             Spacer(minLength: 12)
 
             VStack(spacing: 4) {
-                Text("Built \(buildDate)")
+                Text("Silex \(appVersion)  ·  Built \(buildDate)")
                     .font(.system(size: 10).monospaced())
                     .foregroundStyle(SilexTheme.muted)
-                Link("GitHub Repo: github.com/Anon-233/Silex",
-                     destination: URL(string: "https://github.com/Anon-233/Silex")!)
+                Link(destination: URL(string: "https://github.com/Anon-233/Silex")!) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "link")
+                            .font(.system(size: 9))
+                        Text("GitHub Repo")
+                            .underline()
+                    }
                     .font(.system(size: 10).monospaced())
-                    .foregroundStyle(SilexTheme.muted)
+                    .foregroundStyle(SilexTheme.blue)
+                }
             }
             .frame(maxWidth: .infinity)
         }
@@ -217,29 +210,8 @@ struct SettingsView: View {
         }
     }
 
-    private func requestAndSaveNotification() async {
-        let center = UNUserNotificationCenter.current()
-        let status = await center.notificationSettings().authorizationStatus
-        switch status {
-        case .notDetermined:
-            let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
-            if !granted {
-                model.settings.notificationsEnabled = false
-            }
-            model.saveSettings()
-        case .denied:
-            model.settings.notificationsEnabled = false
-            model.saveSettings()
-            model.presentedAlert = AppAlert(
-                kind: .error,
-                titleKey: "error.notifications.title",
-                message: localized("error.notifications.denied", locale: model.locale)
-            )
-        case .authorized, .provisional, .ephemeral:
-            model.saveSettings()
-        @unknown default:
-            model.saveSettings()
-        }
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
     }
 
     private var buildDate: String {
