@@ -4,6 +4,13 @@ set -eu
 APP_PLIST="/Applications/Silex.app/Contents/Info.plist"
 SERVICE_LABEL="com.anon233.Silex.Daemon"
 HELPER_BUNDLE="/Library/PrivilegedHelperTools/SilexDaemon.app"
+
+# Clean up old SilexSMARTService leftovers from earlier builds
+OLD_LABEL="com.anon233.Silex.SMARTService"
+OLD_HELPER_BUNDLE="/Library/PrivilegedHelperTools/SilexSMARTService.app"
+OLD_HELPER_LEGACY="/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+OLD_PLIST="/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 COMPARE="$SCRIPT_DIR/version-compare.sh"
 INCOMING_VERSION="@SILEX_VERSION@"
@@ -38,6 +45,14 @@ if [ -f "$APP_PLIST" ]; then
     fi
   fi
 fi
+
+# Bootout and remove old SilexSMARTService daemon if present
+if /bin/launchctl print "system/$OLD_LABEL" >/dev/null 2>&1; then
+  /bin/launchctl bootout "system/$OLD_LABEL" 2>/dev/null || true
+fi
+/bin/rm -f "$OLD_PLIST"
+/bin/rm -rf "$OLD_HELPER_BUNDLE"
+/bin/rm -f "$OLD_HELPER_LEGACY"
 
 if /bin/launchctl print "system/$SERVICE_LABEL" >/dev/null 2>&1; then
   /bin/launchctl bootout "system/$SERVICE_LABEL"
