@@ -87,20 +87,6 @@ public final class Database: @unchecked Sendable {
         }
     }
 
-    func transaction<T>(_ body: () throws -> T) throws -> T {
-        try lock.withLock {
-            try Self.execute(connection, sql: "BEGIN IMMEDIATE")
-            do {
-                let value = try body()
-                try Self.execute(connection, sql: "COMMIT")
-                return value
-            } catch {
-                try? Self.execute(connection, sql: "ROLLBACK")
-                throw error
-            }
-        }
-    }
-
     private static func migrate(_ connection: OpaquePointer) throws {
         try execute(
             connection,
@@ -288,4 +274,3 @@ enum SQLiteValue: Equatable {
 typealias SQLiteRow = [String: SQLiteValue]
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-

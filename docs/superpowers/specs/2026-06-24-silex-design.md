@@ -98,8 +98,11 @@ The collection command is fixed:
 smartctl -j -x /dev/disk0
 ```
 
-No arbitrary executable, argument list, or output path is accepted by the
-privileged service.
+The build copies the selected Homebrew binary into
+`Contents/Library/PrivilegedHelperTools/smartctl`. No arbitrary executable,
+argument list, or output path is accepted by the privileged service. The root
+daemon executes only this signed bundle sibling, never a user-owned Homebrew
+path.
 
 An unprivileged probe on the target machine returned exit status 2 with
 `IOCreatePlugInInterfaceForService failed`, so Silex packages a restricted
@@ -216,9 +219,10 @@ Automated tests cover:
 - localization key parity.
 
 The current machine has Swift 6.3.2 and the macOS 26 SDK through Command Line
-Tools but no full Xcode. `swift test`, `swift build`, package assembly, plist
-validation, and ad-hoc signing can be verified. App notarization, System
+Tools but no full Xcode. The bundled Swift Testing runner does not register
+macro tests, so `SilexTestRunner` provides deterministic executable regression
+tests. The test runner, `swift build`, package assembly, plist validation, and
+ad-hoc signing can be verified. App notarization, System
 Settings approval, privileged daemon registration, and GUI interaction require
 full Xcode/signing credentials and are intentionally not performed during this
 development run.
-

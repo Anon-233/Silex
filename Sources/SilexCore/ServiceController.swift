@@ -82,3 +82,7 @@ public enum SMARTConnectionPolicy {
         return effectiveUserID == consoleUserID
     }
 }
+
+public enum PrivilegedServiceIdlePolicy {
+    public static let timeout: TimeInterval = 30
+}

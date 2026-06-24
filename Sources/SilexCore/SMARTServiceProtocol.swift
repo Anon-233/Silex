@@ -6,18 +6,23 @@ public enum SMARTServiceConstants {
 }
 
 public enum PrivilegedSMARTPolicy {
-    public static let allowedExecutablePaths = Set(SmartctlLocator.commonPaths)
+    public static let bundledExecutableName = "smartctl"
 
-    public static func isAllowedExecutable(_ path: String) -> Bool {
-        allowedExecutablePaths.contains(path)
+    public static func bundledExecutableURL(
+        serviceExecutableURL: URL
+    ) -> URL {
+        serviceExecutableURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(bundledExecutableName)
     }
 
-    public static func invocation(executablePath: String) -> ProcessRequest? {
-        guard isAllowedExecutable(executablePath) else {
-            return nil
-        }
+    public static func invocation(
+        serviceExecutableURL: URL
+    ) -> ProcessRequest {
         return ProcessRequest(
-            executableURL: URL(fileURLWithPath: executablePath),
+            executableURL: bundledExecutableURL(
+                serviceExecutableURL: serviceExecutableURL
+            ),
             arguments: ["-j", "-x", "/dev/disk0"]
         )
     }
@@ -33,4 +38,3 @@ public protocol SMARTServiceProtocol {
 public protocol SMARTCollecting: Sendable {
     func collect() async throws -> SmartctlCommandResult
 }
-

@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import OSLog
 import ServiceManagement
 import SilexCore
 
@@ -25,6 +26,7 @@ final class AppModel: ObservableObject {
     private var settingsRepository: SettingsRepository?
     private let serviceController = ServiceController()
     private let scheduler = CollectionScheduler()
+    private var wakeObserver: NSObjectProtocol?
 
     var locale: Locale {
         switch settings.language {
@@ -45,6 +47,12 @@ final class AppModel: ObservableObject {
         bootstrap()
     }
 
+    deinit {
+        if let wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)
+        }
+    }
+
     func collectNow() {
         Task {
             await collect(source: .manual)
@@ -53,10 +61,15 @@ final class AppModel: ObservableObject {
 
     func saveSettings() {
         do {
+            settings.collectionIntervalHours =
+                CollectionSchedulePlanner.normalizedIntervalHours(
+                    settings.collectionIntervalHours
+                )
             try settingsRepository?.save(settings)
             applyLaunchAtLoginSetting()
             scheduleNextCollection()
         } catch {
+            SilexLog.app.error("Saving settings failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -66,6 +79,7 @@ final class AppModel: ObservableObject {
             try ruleRepository?.save(rule)
             rules = try ruleRepository?.all() ?? []
         } catch {
+            SilexLog.app.error("Saving rule failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -89,6 +103,7 @@ final class AppModel: ObservableObject {
             try ruleRepository?.delete(id: rule.id)
             rules = try ruleRepository?.all() ?? []
         } catch {
+            SilexLog.app.error("Deleting rule failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -107,6 +122,7 @@ final class AppModel: ObservableObject {
             do {
                 _ = try await coordinator.test(rule: rule)
             } catch {
+                SilexLog.app.error("Testing rule failed: \(error.localizedDescription, privacy: .public)")
                 lastError = error.localizedDescription
             }
         }
@@ -126,6 +142,7 @@ final class AppModel: ObservableObject {
             }
             scheduleNextCollection()
         } catch {
+            SilexLog.service.error("Service registration failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
             refreshServiceStatus()
         }
@@ -137,6 +154,7 @@ final class AppModel: ObservableObject {
                 try ApplicationPaths.applicationSupport()
             ])
         } catch {
+            SilexLog.app.error("Opening storage failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -161,6 +179,7 @@ final class AppModel: ObservableObject {
             samples = []
             scheduleNextCollection()
         } catch {
+            SilexLog.database.error("Deleting history failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -182,9 +201,12 @@ final class AppModel: ObservableObject {
             samples = try sampleRepository.all()
             rules = try ruleRepository.all()
             settings = try settingsRepository.load()
+            applyLaunchAtLoginSetting()
             refreshServiceStatus()
+            observeWake()
             scheduleNextCollection()
         } catch {
+            SilexLog.app.error("Application bootstrap failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -207,8 +229,10 @@ final class AppModel: ObservableObject {
             samples = try sampleRepository.all()
             rules = try ruleRepository.all()
             lastError = nil
+            SilexLog.collection.info("Collected SMART sample from \(source.rawValue, privacy: .public)")
             scheduleNextCollection()
         } catch {
+            SilexLog.collection.error("Collection failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -218,14 +242,42 @@ final class AppModel: ObservableObject {
             scheduler.cancel()
             return
         }
-        let date = CollectionScheduler.nextCollectionDate(
+
+        let plan = CollectionSchedulePlanner.plan(
             lastCollectedAt: latestSample?.collectedAt,
             intervalHours: settings.collectionIntervalHours,
             now: .now
         )
-        scheduler.schedule(at: date) { [weak self] in
+
+        if plan.isDueNow {
+            scheduler.cancel()
+            guard !isCollecting else {
+                return
+            }
             Task { @MainActor [weak self] in
                 await self?.collect(source: .scheduled)
+            }
+            return
+        }
+
+        scheduler.schedule(at: plan.scheduledAt) { [weak self] in
+            Task { @MainActor [weak self] in
+                await self?.collect(source: .scheduled)
+            }
+        }
+    }
+
+    private func observeWake() {
+        guard wakeObserver == nil else {
+            return
+        }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.scheduleNextCollection()
             }
         }
     }
@@ -244,6 +296,7 @@ final class AppModel: ObservableObject {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
+            SilexLog.app.error("Login item update failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -269,6 +322,7 @@ final class AppModel: ObservableObject {
         do {
             try data.write(to: url, options: .atomic)
         } catch {
+            SilexLog.app.error("Export failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
@@ -284,4 +338,3 @@ final class AppModel: ObservableObject {
         }
     }
 }
-

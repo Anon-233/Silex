@@ -1,7 +1,8 @@
 import Foundation
 import SilexCore
 
-let delegate = SMARTServiceListenerDelegate()
+let idleTerminator = ServiceIdleTerminator()
+let delegate = SMARTServiceListenerDelegate(idleTerminator: idleTerminator)
 let listener = NSXPCListener(machServiceName: SMARTServiceConstants.machServiceName)
 listener.delegate = delegate
 listener.resume()

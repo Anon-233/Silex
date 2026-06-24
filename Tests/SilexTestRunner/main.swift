@@ -240,7 +240,7 @@ let tests: [HarnessTest] = [
         try require(engine.evaluate(rule, samples: values, now: now) == nil, "cooldown should suppress")
         try require(engine.simulatedMatch(for: rule, now: now).isSimulation, "simulation flag")
     },
-    HarnessTest(name: "smartctl runner and privileged policy are fixed") {
+    HarnessTest(name: "smartctl runner and bundled privileged policy are fixed") {
         let executor = RecordingExecutor(
             result: ProcessResult(stdout: Data("{}".utf8), stderr: Data(), exitStatus: 0)
         )
@@ -248,8 +248,17 @@ let tests: [HarnessTest] = [
             executablePath: "/opt/homebrew/bin/smartctl"
         )
         try requireEqual(executor.request?.arguments, ["-j", "-x", "/dev/disk0"], "arguments")
-        try require(PrivilegedSMARTPolicy.isAllowedExecutable("/opt/homebrew/bin/smartctl"), "allowed path")
-        try require(!PrivilegedSMARTPolicy.isAllowedExecutable("/tmp/smartctl"), "rejected path")
+        let serviceURL = URL(
+            fileURLWithPath:
+                "/Applications/Silex.app/Contents/Library/PrivilegedHelperTools/SilexSMARTService"
+        )
+        try requireEqual(
+            PrivilegedSMARTPolicy.bundledExecutableURL(
+                serviceExecutableURL: serviceURL
+            ).path,
+            "/Applications/Silex.app/Contents/Library/PrivilegedHelperTools/smartctl",
+            "bundled smartctl path"
+        )
     },
     HarnessTest(name: "service status and console user policy") {
         try requireEqual(ServiceController.map(.enabled), .enabled, "enabled mapping")
@@ -308,6 +317,56 @@ let tests: [HarnessTest] = [
         )
         try requireEqual(next, now.addingTimeInterval(6 * 3_600), "next collection date")
     },
+    HarnessTest(name: "schedule planning handles wake, startup, and interval changes") {
+        let now = Date(timeIntervalSince1970: 100_000)
+        let last = now.addingTimeInterval(-10 * 3_600)
+
+        let wakePlan = CollectionSchedulePlanner.plan(
+            lastCollectedAt: last,
+            intervalHours: 8,
+            now: now
+        )
+        try require(wakePlan.isDueNow, "overdue wake must collect immediately")
+        try requireEqual(wakePlan.scheduledAt, now, "overdue wake date")
+
+        let shortened = CollectionSchedulePlanner.plan(
+            lastCollectedAt: last,
+            intervalHours: 4,
+            now: now
+        )
+        try require(shortened.isDueNow, "shortened overdue interval must collect immediately")
+
+        let lengthened = CollectionSchedulePlanner.plan(
+            lastCollectedAt: last,
+            intervalHours: 12,
+            now: now
+        )
+        try require(!lengthened.isDueNow, "lengthened interval must wait")
+        try requireEqual(
+            lengthened.scheduledAt,
+            last.addingTimeInterval(12 * 3_600),
+            "lengthened interval date"
+        )
+
+        let firstLaunch = CollectionSchedulePlanner.plan(
+            lastCollectedAt: nil,
+            intervalHours: 8,
+            now: now
+        )
+        try require(firstLaunch.isDueNow, "first launch must collect immediately")
+        try requireEqual(
+            CollectionSchedulePlanner.normalizedIntervalHours(0),
+            0.25,
+            "minimum interval"
+        )
+    },
+    HarnessTest(name: "privileged service has a finite idle lifetime") {
+        try requireEqual(
+            PrivilegedServiceIdlePolicy.timeout,
+            30,
+            "privileged service idle timeout"
+        )
+    },
     HarnessTest(name: "exporter preserves JSON and stable CSV") {
         let value = sample(date: Date(timeIntervalSince1970: 1_000))
         let exporter = HistoryExporter()
@@ -350,6 +409,38 @@ let tests: [HarnessTest] = [
         let chinese = try keys("zh-Hans.lproj/Localizable.strings")
         try requireEqual(english, chinese, "localization key parity")
         try require(english.contains("action.collect"), "required localization key")
+    },
+    HarnessTest(name: "app packaging metadata is native and non-Dock") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let infoURL = root.appendingPathComponent("Resources/App/Info.plist")
+        let data = try Data(contentsOf: infoURL)
+        guard
+            let info = try PropertyListSerialization.propertyList(
+                from: data,
+                format: nil
+            ) as? [String: Any]
+        else {
+            throw HarnessFailure(description: "Info.plist is not a dictionary")
+        }
+        try requireEqual(info["CFBundleIdentifier"] as? String, "com.anon233.Silex", "bundle ID")
+        try requireEqual(info["CFBundleExecutable"] as? String, "Silex", "executable")
+        try requireEqual(info["LSMinimumSystemVersion"] as? String, "26.0", "minimum system")
+        try requireEqual(info["LSUIElement"] as? Bool, true, "menu bar app")
+        try require(
+            FileManager.default.isExecutableFile(
+                atPath: root.appendingPathComponent("Scripts/build-app.sh").path
+            ),
+            "build-app.sh must be executable"
+        )
+        let script = try String(
+            contentsOf: root.appendingPathComponent("Scripts/build-app.sh"),
+            encoding: .utf8
+        )
+        try require(
+            script.contains("SMARTCTL_SOURCE")
+                && script.contains("PrivilegedHelperTools/smartctl"),
+            "build must bundle smartctl instead of executing Homebrew as root"
+        )
     }
 ]
 
@@ -376,4 +467,3 @@ Task {
     exit(failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE)
 }
 dispatchMain()
-

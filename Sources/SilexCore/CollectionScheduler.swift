@@ -1,5 +1,44 @@
 import Foundation
 
+public struct CollectionSchedulePlan: Equatable, Sendable {
+    public let scheduledAt: Date
+    public let isDueNow: Bool
+
+    public init(scheduledAt: Date, isDueNow: Bool) {
+        self.scheduledAt = scheduledAt
+        self.isDueNow = isDueNow
+    }
+}
+
+public enum CollectionSchedulePlanner {
+    public static let minimumIntervalHours: Double = 0.25
+
+    public static func normalizedIntervalHours(_ intervalHours: Double) -> Double {
+        guard intervalHours.isFinite else {
+            return 8
+        }
+        return max(intervalHours, minimumIntervalHours)
+    }
+
+    public static func plan(
+        lastCollectedAt: Date?,
+        intervalHours: Double,
+        now: Date
+    ) -> CollectionSchedulePlan {
+        guard let lastCollectedAt else {
+            return CollectionSchedulePlan(scheduledAt: now, isDueNow: true)
+        }
+
+        let candidate = lastCollectedAt.addingTimeInterval(
+            normalizedIntervalHours(intervalHours) * 3_600
+        )
+        if candidate <= now {
+            return CollectionSchedulePlan(scheduledAt: now, isDueNow: true)
+        }
+        return CollectionSchedulePlan(scheduledAt: candidate, isDueNow: false)
+    }
+}
+
 public protocol Cancellation: Sendable {
     func cancel()
 }
@@ -46,11 +85,11 @@ public final class CollectionScheduler: @unchecked Sendable {
         intervalHours: Double,
         now: Date
     ) -> Date {
-        guard let lastCollectedAt else {
-            return now
-        }
-        let candidate = lastCollectedAt.addingTimeInterval(max(intervalHours, 0) * 3_600)
-        return max(candidate, now)
+        CollectionSchedulePlanner.plan(
+            lastCollectedAt: lastCollectedAt,
+            intervalHours: intervalHours,
+            now: now
+        ).scheduledAt
     }
 }
 
@@ -89,4 +128,3 @@ private final class DispatchTimerCancellation: Cancellation, @unchecked Sendable
         }
     }
 }
-

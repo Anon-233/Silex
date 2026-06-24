@@ -14,10 +14,12 @@ struct LocalizedLabel: View {
 }
 
 func localized(_ key: String, locale: Locale) -> String {
-    String(
+    let bundle: Bundle = Bundle.main.bundleURL.pathExtension == "app"
+        ? .main
+        : .module
+    return String(
         localized: String.LocalizationValue(key),
-        bundle: .module,
+        bundle: bundle,
         locale: locale
     )
 }
-

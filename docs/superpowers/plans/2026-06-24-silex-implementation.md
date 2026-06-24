@@ -318,6 +318,7 @@ Silex.app/
   Contents/MacOS/Silex
   Contents/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist
   Contents/Library/PrivilegedHelperTools/SilexSMARTService
+  Contents/Library/PrivilegedHelperTools/smartctl
   Contents/Resources/en.lproj/Localizable.strings
   Contents/Resources/zh-Hans.lproj/Localizable.strings
 ```
@@ -329,8 +330,8 @@ It validates plists and supports ad-hoc signing for local build verification.
 Run:
 
 ```bash
-swift test
-swift build -c release
+swift run --disable-sandbox SilexTestRunner
+swift build -c release --disable-sandbox
 bash Scripts/build-app.sh --adhoc
 plutil -lint dist/Silex.app/Contents/Info.plist
 plutil -lint dist/Silex.app/Contents/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist
@@ -340,4 +341,3 @@ git status --short
 
 Expected: all tests pass; release build, app assembly, plist validation, and
 ad-hoc signature verification succeed; generated output remains ignored.
-
