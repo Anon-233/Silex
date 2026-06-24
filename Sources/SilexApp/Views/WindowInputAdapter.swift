@@ -36,6 +36,7 @@ struct WindowInputAdapter: NSViewRepresentable {
         private var horizontalDistance: CGFloat = 0
         private var verticalDistance: CGFloat = 0
         private var didNavigate = false
+        private var navigatedThisGesture = false
         private var resetWorkItem: DispatchWorkItem?
 
         init(
@@ -111,12 +112,20 @@ struct WindowInputAdapter: NSViewRepresentable {
             if event.phase == .began {
                 resetGesture()
             }
-            if event.phase == .ended
-                || event.phase == .cancelled
-                || event.momentumPhase == .ended
+
+            if event.momentumPhase == .ended
                 || event.momentumPhase == .cancelled
             {
                 resetGesture()
+                return event
+            }
+
+            if event.phase == .ended
+                || event.phase == .cancelled
+            {
+                horizontalDistance = 0
+                verticalDistance = 0
+                didNavigate = false
                 return event
             }
 
@@ -129,7 +138,7 @@ struct WindowInputAdapter: NSViewRepresentable {
             verticalDistance += event.scrollingDeltaY
 
             guard
-                !didNavigate,
+                !navigatedThisGesture,
                 abs(horizontalDistance) >= 60,
                 abs(horizontalDistance) > abs(verticalDistance) * 1.25
             else {
@@ -137,6 +146,7 @@ struct WindowInputAdapter: NSViewRepresentable {
                 return event
             }
 
+            navigatedThisGesture = true
             didNavigate = true
             move(horizontalDistance > 0 ? .previous : .next)
             scheduleLegacyResetIfNeeded(for: event)
@@ -159,6 +169,7 @@ struct WindowInputAdapter: NSViewRepresentable {
             horizontalDistance = 0
             verticalDistance = 0
             didNavigate = false
+            navigatedThisGesture = false
         }
     }
 }

@@ -48,11 +48,13 @@ struct MenuBarView: View {
             Divider()
 
             Button {
+                NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "main")
                 DispatchQueue.main.async {
-                    NSApp.activate(ignoringOtherApps: true)
                     NSApp.windows.first { $0.title == "Silex" }?
-                        .makeKeyAndOrderFront(nil)
+                        .orderFrontRegardless()
+                    NSApp.windows.first { $0.title == "Silex" }?
+                        .makeKey()
                 }
             } label: {
                 Label {
