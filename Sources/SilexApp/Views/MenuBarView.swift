@@ -48,11 +48,12 @@ struct MenuBarView: View {
             Divider()
 
             Button {
+                NSApp.activate()
                 openWindow(id: "main")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.async {
                     NSApp.activate()
                     if let window = NSApp.windows.first(where: {
-                        $0.title == "Silex"
+                        !$0.isKind(of: NSPanel.self)
                     }) {
                         window.makeKeyAndOrderFront(nil)
                     }

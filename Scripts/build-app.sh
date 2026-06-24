@@ -56,6 +56,8 @@ install -m 644 \
   -string "$SILEX_VERSION" "$CONTENTS/Info.plist"
 /usr/bin/plutil -replace CFBundleVersion \
   -string "$SILEX_BUILD" "$CONTENTS/Info.plist"
+/usr/bin/plutil -replace SilexBuildDate \
+  -string "$(date '+%Y-%m-%d %H:%M %Z')" "$CONTENTS/Info.plist"
 
 ICONSET="$DIST/AppIcon.iconset"
 rm -rf "$ICONSET"

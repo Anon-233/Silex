@@ -151,3 +151,4 @@
 "rule.empty.title" = "No rules";
 "rule.empty.message" = "Add a rule to monitor an SSD metric.";
 "rule.defaultName" = "New Rule";
+"settings.buildDateUnknown" = "Build date unknown";
