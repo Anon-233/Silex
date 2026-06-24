@@ -17,19 +17,50 @@ struct SettingsView: View {
 
             VStack(spacing: 0) {
                 SettingRow(labelKey: "settings.language") {
-                    Picker("", selection: $model.settings.language) {
-                        LocalizedLabel("settings.followSystem")
-                            .tag(LanguagePreference.system)
-                        LocalizedLabel("settings.english")
-                            .tag(LanguagePreference.english)
-                        LocalizedLabel("settings.chinese")
-                            .tag(LanguagePreference.simplifiedChinese)
+                    Menu {
+                        Button {
+                            model.settings.language = .system
+                            model.saveSettings()
+                        } label: {
+                            HStack {
+                                LocalizedLabel("settings.followSystem")
+                                if model.settings.language == .system {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                        Button {
+                            model.settings.language = .english
+                            model.saveSettings()
+                        } label: {
+                            HStack {
+                                LocalizedLabel("settings.english")
+                                if model.settings.language == .english {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                        Button {
+                            model.settings.language = .simplifiedChinese
+                            model.saveSettings()
+                        } label: {
+                            HStack {
+                                LocalizedLabel("settings.chinese")
+                                if model.settings.language == .simplifiedChinese {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(currentLanguageLabel)
+                                .frame(width: 130, alignment: .leading)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(SilexTheme.muted)
+                        }
                     }
-                    .labelsHidden()
-                    .frame(width: 160, alignment: .leading)
-                    .onChange(of: model.settings.language) {
-                        model.saveSettings()
-                    }
+                    .buttonStyle(.borderless)
                 }
 
                 SettingRow(labelKey: "settings.interval") {
@@ -208,6 +239,14 @@ struct SettingsView: View {
             smartctlPathText = path
             model.settings.smartctlPath = path
             model.saveSettings()
+        }
+    }
+
+    private var currentLanguageLabel: String {
+        switch model.settings.language {
+        case .system: localized("settings.followSystem", locale: model.locale)
+        case .english: localized("settings.english", locale: model.locale)
+        case .simplifiedChinese: localized("settings.chinese", locale: model.locale)
         }
     }
 
