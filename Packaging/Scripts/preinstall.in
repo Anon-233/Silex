@@ -3,6 +3,8 @@ set -eu
 
 APP_PLIST="/Applications/Silex.app/Contents/Info.plist"
 SERVICE_LABEL="com.anon233.Silex.SMARTService"
+HELPER_BUNDLE="/Library/PrivilegedHelperTools/SilexSMARTService.app"
+LEGACY_HELPER="/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 COMPARE="$SCRIPT_DIR/version-compare.sh"
 INCOMING_VERSION="@SILEX_VERSION@"
@@ -41,5 +43,8 @@ fi
 if /bin/launchctl print "system/$SERVICE_LABEL" >/dev/null 2>&1; then
   /bin/launchctl bootout "system/$SERVICE_LABEL"
 fi
+
+/bin/rm -rf "$HELPER_BUNDLE"
+/bin/rm -f "$LEGACY_HELPER"
 
 exit 0

@@ -4,7 +4,7 @@ public enum SMARTServiceConstants {
     public static let machServiceName = "com.anon233.Silex.SMARTService"
     public static let launchDaemonPlistName = "com.anon233.Silex.SMARTService.plist"
     public static let installedServicePath =
-        "/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+        "/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents/MacOS/SilexSMARTService"
     public static let installedSmartctlPath =
         "/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
 }
@@ -15,9 +15,8 @@ public enum PrivilegedSMARTPolicy {
     public static func bundledExecutableURL(
         serviceExecutableURL: URL
     ) -> URL {
-        serviceExecutableURL
-            .deletingLastPathComponent()
-            .appendingPathComponent(bundledExecutableName)
+        _ = serviceExecutableURL
+        return URL(fileURLWithPath: SMARTServiceConstants.installedSmartctlPath)
     }
 
     public static func invocation(

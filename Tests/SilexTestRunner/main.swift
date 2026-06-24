@@ -691,6 +691,121 @@ let tests: [HarnessTest] = [
             "background item association"
         )
     },
+    HarnessTest(name: "background service bundle has readable stable upgrade metadata") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let helperInfoURL = root.appendingPathComponent(
+            "Resources/PrivilegedHelper/Info.plist"
+        )
+        let helperInfoData = try Data(contentsOf: helperInfoURL)
+        let helperInfo = try PropertyListSerialization.propertyList(
+            from: helperInfoData,
+            format: nil
+        ) as? [String: Any] ?? [:]
+        try requireEqual(
+            helperInfo["CFBundleIdentifier"] as? String,
+            "com.anon233.Silex.SMARTService",
+            "stable helper identifier"
+        )
+        try requireEqual(
+            helperInfo["CFBundleExecutable"] as? String,
+            "SilexSMARTService",
+            "helper executable name"
+        )
+        try requireEqual(
+            helperInfo["CFBundleDisplayName"] as? String,
+            "Silex SMART Service",
+            "default helper display name"
+        )
+
+        let english = try String(
+            contentsOf: root.appendingPathComponent(
+                "Resources/PrivilegedHelper/en.lproj/InfoPlist.strings"
+            ),
+            encoding: .utf8
+        )
+        let chinese = try String(
+            contentsOf: root.appendingPathComponent(
+                "Resources/PrivilegedHelper/zh-Hans.lproj/InfoPlist.strings"
+            ),
+            encoding: .utf8
+        )
+        try require(
+            english.contains("\"Silex SMART Service\""),
+            "English helper display name"
+        )
+        try require(
+            chinese.contains("\"Silex SMART 后台服务\""),
+            "Chinese helper display name"
+        )
+
+        let preinstall = try String(
+            contentsOf: root.appendingPathComponent(
+                "Packaging/Scripts/preinstall.in"
+            ),
+            encoding: .utf8
+        )
+        let postinstall = try String(
+            contentsOf: root.appendingPathComponent(
+                "Packaging/Scripts/postinstall"
+            ),
+            encoding: .utf8
+        )
+        let uninstaller = try String(
+            contentsOf: root.appendingPathComponent(
+                "Packaging/Uninstall Silex.applescript"
+            ),
+            encoding: .utf8
+        )
+        let build = try String(
+            contentsOf: root.appendingPathComponent(
+                "Scripts/build-installer.sh"
+            ),
+            encoding: .utf8
+        )
+        let verifier = try String(
+            contentsOf: root.appendingPathComponent(
+                "Scripts/verify-installer.sh"
+            ),
+            encoding: .utf8
+        )
+        let helperBundlePath =
+            "/Library/PrivilegedHelperTools/SilexSMARTService.app"
+        let legacyHelperPath =
+            "/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+
+        try require(
+            SMARTServiceConstants.installedServicePath.hasPrefix(
+                helperBundlePath
+            ),
+            "service executable is inside named helper bundle"
+        )
+        try require(
+            preinstall.contains(legacyHelperPath),
+            "update removes legacy helper"
+        )
+        try require(
+            postinstall.contains(helperBundlePath),
+            "postinstall secures helper bundle"
+        )
+        try require(
+            uninstaller.contains(helperBundlePath)
+                && uninstaller.contains(legacyHelperPath),
+            "uninstaller supports current and legacy helper layouts"
+        )
+        try require(
+            build.contains("Resources/PrivilegedHelper/Info.plist")
+                && build.contains("SilexSMARTService.app/Contents/MacOS")
+                && build.contains("InfoPlist.strings"),
+            "build assembles named helper bundle"
+        )
+        try require(
+            verifier.contains("SilexSMARTService.app")
+                && verifier.contains("CFBundleDisplayName")
+                && verifier.contains("PAYLOAD_HELPER_COUNT")
+                && !verifier.contains("sfltool resetbtm"),
+            "verifier enforces readable single helper"
+        )
+    },
     HarnessTest(name: "settings expose package service without Homebrew installer") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let sources = [
@@ -831,7 +946,7 @@ let tests: [HarnessTest] = [
         for path in [
             "Applications/Silex.app",
             "Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist",
-            "Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService",
+            "Library/PrivilegedHelperTools/SilexSMARTService.app",
             "Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
         ] {
             try require(build.contains(path), "missing payload path \(path)")

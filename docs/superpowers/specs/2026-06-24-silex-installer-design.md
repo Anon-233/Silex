@@ -39,7 +39,7 @@ The package uses stable paths and identifiers:
 - Launch daemon plist:
   `/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist`
 - Privileged helper:
-  `/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService`
+  `/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents/MacOS/SilexSMARTService`
 - Bundled SMART executable:
   `/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl`
 

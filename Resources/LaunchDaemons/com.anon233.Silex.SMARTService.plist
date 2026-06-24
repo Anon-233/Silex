@@ -6,7 +6,7 @@
     <string>com.anon233.Silex.SMARTService</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService</string>
+        <string>/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents/MacOS/SilexSMARTService</string>
     </array>
     <key>MachServices</key>
     <dict>

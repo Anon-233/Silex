@@ -46,15 +46,47 @@ COMPONENT="$EXPANDED/Silex-component.pkg"
 PAYLOAD="$COMPONENT/Payload"
 PAYLOAD_APP="$PAYLOAD/Applications/Silex.app"
 PLIST="$PAYLOAD/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
-HELPER="$PAYLOAD/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+HELPER_BUNDLE="$PAYLOAD/Library/PrivilegedHelperTools/SilexSMARTService.app"
+HELPER="$HELPER_BUNDLE/Contents/MacOS/SilexSMARTService"
+HELPER_INFO="$HELPER_BUNDLE/Contents/Info.plist"
 SMARTCTL="$PAYLOAD/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
 
-for payload_path in "$PAYLOAD_APP" "$PLIST" "$HELPER" "$SMARTCTL"; do
+for payload_path in \
+  "$PAYLOAD_APP" \
+  "$PLIST" \
+  "$HELPER_BUNDLE" \
+  "$HELPER" \
+  "$HELPER_INFO" \
+  "$SMARTCTL"
+do
   if [[ ! -e "$payload_path" ]]; then
     echo "missing package payload: $payload_path" >&2
     exit 65
   fi
 done
+
+PAYLOAD_APP_COUNT=$(
+  /usr/bin/find "$PAYLOAD/Applications" \
+    -mindepth 1 -maxdepth 1 -type d -name 'Silex.app' -print |
+    /usr/bin/wc -l |
+    /usr/bin/tr -d ' '
+)
+PAYLOAD_HELPER_COUNT=$(
+  /usr/bin/find "$PAYLOAD/Library/PrivilegedHelperTools" \
+    -mindepth 1 -maxdepth 1 -type d -name 'SilexSMARTService.app' -print |
+    /usr/bin/wc -l |
+    /usr/bin/tr -d ' '
+)
+if [[ "$PAYLOAD_APP_COUNT" != "1" || "$PAYLOAD_HELPER_COUNT" != "1" ]]; then
+  echo "package must contain exactly one app and one helper bundle" >&2
+  exit 65
+fi
+if [[ -e \
+  "$PAYLOAD/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService" \
+]]; then
+  echo "package contains obsolete bare helper" >&2
+  exit 65
+fi
 
 if ! /usr/bin/grep -q 'identifier="com.anon233.Silex.pkg"' \
   "$COMPONENT/PackageInfo"
@@ -91,9 +123,33 @@ for executable in "$HELPER" "$SMARTCTL"; do
   fi
 done
 
-/usr/bin/plutil -lint "$PAYLOAD_APP/Contents/Info.plist" "$PLIST"
+/usr/bin/plutil -lint \
+  "$PAYLOAD_APP/Contents/Info.plist" \
+  "$HELPER_INFO" \
+  "$PLIST"
+if [[ "$(
+  /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$HELPER_INFO"
+)" != "com.anon233.Silex.SMARTService" ]]; then
+  echo "helper bundle identifier is incorrect" >&2
+  exit 65
+fi
+if [[ "$(
+  /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$HELPER_INFO"
+)" != "Silex SMART Service" ]]; then
+  echo "helper CFBundleDisplayName is incorrect" >&2
+  exit 65
+fi
+for localized_info in \
+  "$HELPER_BUNDLE/Contents/Resources/en.lproj/InfoPlist.strings" \
+  "$HELPER_BUNDLE/Contents/Resources/zh-Hans.lproj/InfoPlist.strings"
+do
+  if [[ ! -f "$localized_info" ]]; then
+    echo "missing helper localization: $localized_info" >&2
+    exit 65
+  fi
+done
 /usr/bin/codesign --verify --deep --strict "$PAYLOAD_APP"
-/usr/bin/codesign --verify --strict "$HELPER"
+/usr/bin/codesign --verify --deep --strict "$HELPER_BUNDLE"
 /usr/bin/codesign --verify --strict "$SMARTCTL"
 
 for binary in \

@@ -12,6 +12,9 @@ COMPONENT_PLIST="$WORK/components.plist"
 PRODUCT_PACKAGE=""
 DISK_IMAGE=""
 DMG_ROOT="$WORK/dmg-root"
+HELPER_BUNDLE="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexSMARTService.app"
+HELPER_CONTENTS="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents"
+HELPER_EXECUTABLE="$PAYLOAD_ROOT/Library/PrivilegedHelperTools/SilexSMARTService.app/Contents/MacOS/SilexSMARTService"
 ALLOW_DOWNGRADE=0
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 INSTALLER_SIGN_IDENTITY="${INSTALLER_SIGN_IDENTITY:-}"
@@ -70,6 +73,9 @@ mkdir -p \
   "$PAYLOAD_ROOT/Applications" \
   "$PAYLOAD_ROOT/Library/LaunchDaemons" \
   "$PAYLOAD_ROOT/Library/PrivilegedHelperTools" \
+  "$HELPER_CONTENTS/MacOS" \
+  "$HELPER_CONTENTS/Resources/en.lproj" \
+  "$HELPER_CONTENTS/Resources/zh-Hans.lproj" \
   "$PACKAGE_SCRIPTS"
 
 if [[ "$APP_SIGN_IDENTITY" == "-" ]]; then
@@ -98,12 +104,26 @@ BIN_PATH="$(swift build \
 /usr/bin/install -m 644 \
   "$ROOT/Resources/LaunchDaemons/com.anon233.Silex.SMARTService.plist" \
   "$PAYLOAD_ROOT/Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist"
+/usr/bin/install -m 644 \
+  "$ROOT/Resources/PrivilegedHelper/Info.plist" \
+  "$HELPER_CONTENTS/Info.plist"
+/usr/bin/install -m 644 \
+  "$ROOT/Resources/PrivilegedHelper/en.lproj/InfoPlist.strings" \
+  "$HELPER_CONTENTS/Resources/en.lproj/InfoPlist.strings"
+/usr/bin/install -m 644 \
+  "$ROOT/Resources/PrivilegedHelper/zh-Hans.lproj/InfoPlist.strings" \
+  "$HELPER_CONTENTS/Resources/zh-Hans.lproj/InfoPlist.strings"
 /usr/bin/install -m 755 \
   "$BIN_PATH/SilexSMARTService" \
-  "$PAYLOAD_ROOT/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+  "$HELPER_EXECUTABLE"
 /usr/bin/install -m 755 \
   "$SMARTCTL_SOURCE" \
   "$PAYLOAD_ROOT/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
+
+/usr/bin/plutil -replace CFBundleShortVersionString \
+  -string "$VERSION" "$HELPER_CONTENTS/Info.plist"
+/usr/bin/plutil -replace CFBundleVersion \
+  -string "$BUILD" "$HELPER_CONTENTS/Info.plist"
 
 if [[ "$APP_SIGN_IDENTITY" == "-" ]]; then
   /usr/bin/codesign \
@@ -115,7 +135,7 @@ if [[ "$APP_SIGN_IDENTITY" == "-" ]]; then
     --force \
     --sign - \
     --identifier com.anon233.Silex.SMARTService \
-    "$PAYLOAD_ROOT/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+    "$HELPER_BUNDLE"
 else
   /usr/bin/codesign \
     --force \
@@ -128,7 +148,7 @@ else
     --sign "$APP_SIGN_IDENTITY" \
     --options runtime \
     --timestamp \
-    "$PAYLOAD_ROOT/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
+    "$HELPER_BUNDLE"
 fi
 
 /usr/bin/sed \
@@ -157,22 +177,29 @@ fi
   --analyze \
   --root "$PAYLOAD_ROOT" \
   "$COMPONENT_PLIST"
-/usr/bin/plutil \
-  -replace 0.BundleIsRelocatable \
-  -bool false \
-  "$COMPONENT_PLIST"
-/usr/bin/plutil \
-  -replace 0.BundleIsVersionChecked \
-  -bool true \
-  "$COMPONENT_PLIST"
-/usr/bin/plutil \
-  -replace 0.BundleHasStrictIdentifier \
-  -bool true \
-  "$COMPONENT_PLIST"
-/usr/bin/plutil \
-  -replace 0.BundleOverwriteAction \
-  -string upgrade \
-  "$COMPONENT_PLIST"
+COMPONENT_INDEX=0
+while /usr/libexec/PlistBuddy \
+  -c "Print :$COMPONENT_INDEX:RootRelativeBundlePath" \
+  "$COMPONENT_PLIST" >/dev/null 2>&1
+do
+  /usr/bin/plutil \
+    -replace "$COMPONENT_INDEX.BundleIsRelocatable" \
+    -bool false \
+    "$COMPONENT_PLIST"
+  /usr/bin/plutil \
+    -replace "$COMPONENT_INDEX.BundleIsVersionChecked" \
+    -bool true \
+    "$COMPONENT_PLIST"
+  /usr/bin/plutil \
+    -replace "$COMPONENT_INDEX.BundleHasStrictIdentifier" \
+    -bool true \
+    "$COMPONENT_PLIST"
+  /usr/bin/plutil \
+    -replace "$COMPONENT_INDEX.BundleOverwriteAction" \
+    -string upgrade \
+    "$COMPONENT_PLIST"
+  COMPONENT_INDEX=$((COMPONENT_INDEX + 1))
+done
 
 /usr/bin/pkgbuild \
   --root "$PAYLOAD_ROOT" \

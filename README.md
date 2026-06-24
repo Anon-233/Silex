@@ -31,7 +31,7 @@ For privilege safety, the root helper never executes the user-owned Homebrew
 path. `Scripts/build-installer.sh` copies the selected `smartctl` binary into
 the fixed package payload path
 `/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl`. The helper executes
-only that fixed sibling executable. Set `SMARTCTL_PATH=/path/to/smartctl` while
+only that fixed packaged executable. Set `SMARTCTL_PATH=/path/to/smartctl` while
 building to choose a source path.
 
 ## Tests
@@ -98,7 +98,10 @@ by `.gitignore`.
 
 The package installs the on-demand daemon
 `com.anon233.Silex.SMARTService`. It exits after 30 idle seconds and is not an
-always-running process.
+always-running process. Its privileged helper is packaged with the localized
+display name `Silex SMART Service` (`Silex SMART 后台服务` in Simplified
+Chinese), while the internal launchd and Mach service identifier remains
+stable for in-place updates.
 
 View or disable it in:
 

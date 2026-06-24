@@ -4,7 +4,7 @@ set promptText to "Remove Silex and its privileged SMART service?
 set answer to display dialog promptText buttons {"Cancel", "Uninstall"} default button "Uninstall" cancel button "Cancel" with icon caution
 
 if button returned of answer is "Uninstall" then
-    set uninstallCommand to "/bin/launchctl bootout system/com.anon233.Silex.SMARTService >/dev/null 2>&1 || true; /bin/rm -f /Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist; /bin/rm -f /Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService; /bin/rm -f /Library/PrivilegedHelperTools/com.anon233.Silex.smartctl; /bin/rm -rf /Applications/Silex.app; /usr/sbin/pkgutil --forget com.anon233.Silex.pkg >/dev/null 2>&1 || true"
+    set uninstallCommand to "/bin/launchctl bootout system/com.anon233.Silex.SMARTService >/dev/null 2>&1 || true; /bin/rm -f /Library/LaunchDaemons/com.anon233.Silex.SMARTService.plist; /bin/rm -rf /Library/PrivilegedHelperTools/SilexSMARTService.app; /bin/rm -f /Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService; /bin/rm -f /Library/PrivilegedHelperTools/com.anon233.Silex.smartctl; /bin/rm -rf /Applications/Silex.app; /usr/sbin/pkgutil --forget com.anon233.Silex.pkg >/dev/null 2>&1 || true"
     do shell script uninstallCommand with administrator privileges
     display dialog "Silex was removed. History remains in ~/Library/Application Support/Silex.
 
