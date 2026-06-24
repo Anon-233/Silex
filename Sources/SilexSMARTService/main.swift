@@ -1,1 +1,8 @@
-// Privileged service entry point is added after its contract is verified.
+import Foundation
+import SilexCore
+
+let delegate = SMARTServiceListenerDelegate()
+let listener = NSXPCListener(machServiceName: SMARTServiceConstants.machServiceName)
+listener.delegate = delegate
+listener.resume()
+RunLoop.current.run()

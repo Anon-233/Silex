@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.anon233.Silex.SMARTService</string>
+    <key>BundleProgram</key>
+    <string>Contents/Library/PrivilegedHelperTools/SilexSMARTService</string>
+    <key>MachServices</key>
+    <dict>
+        <key>com.anon233.Silex.SMARTService</key>
+        <true/>
+    </dict>
+    <key>UserName</key>
+    <string>root</string>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>com.anon233.Silex</string>
+    </array>
+</dict>
+</plist>
+
