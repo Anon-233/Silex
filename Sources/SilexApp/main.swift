@@ -31,17 +31,14 @@ private struct MenuBarIcon: View {
                 .resizable()
                 .scaledToFit()
         } else {
-            AppMark()
+            Image(systemName: "internaldrive")
+                .font(.system(size: 14, weight: .medium))
         }
     }
 
     private func loadLogo() -> NSImage? {
-        let name = "logo"
-        let bundles: [Bundle] = Bundle.main.bundleURL.pathExtension == "app"
-            ? [.main, .module]
-            : [.module, .main]
-        for bundle in bundles {
-            if let path = bundle.path(forResource: name, ofType: "png"),
+        for bundle in [Bundle.main, Bundle.module] {
+            if let path = bundle.path(forResource: "logo", ofType: "png"),
                let image = NSImage(contentsOfFile: path) {
                 image.isTemplate = false
                 return image

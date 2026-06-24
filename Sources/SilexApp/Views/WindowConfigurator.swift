@@ -2,6 +2,8 @@ import AppKit
 import SwiftUI
 
 struct WindowConfigurator: NSViewRepresentable {
+    private static var didInitialHide = false
+
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
@@ -27,6 +29,10 @@ struct WindowConfigurator: NSViewRepresentable {
         window.title = "Silex"
         if window.delegate !== coordinator {
             window.delegate = coordinator
+        }
+        if !Self.didInitialHide {
+            Self.didInitialHide = true
+            window.orderOut(nil)
         }
     }
 
