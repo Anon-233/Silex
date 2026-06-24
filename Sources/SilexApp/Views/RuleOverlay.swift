@@ -58,10 +58,13 @@ struct RuleOverlay: View {
                     ScrollView {
                         LazyVStack(spacing: 8) {
                             ForEach($drafts) { $draft in
+                                let dirty = baselineRules.first(where: { $0.id == draft.id })
+                                    .map { draft.isDirty(comparedTo: $0) } ?? true
                                 RuleEditorRow(
                                     draft: $draft,
                                     locale: model.locale,
                                     errors: validationErrors[draft.id] ?? [],
+                                    isDirty: dirty,
                                     save: { saveDraft(draft) },
                                     test: { testDraft(draft) },
                                     delete: {
@@ -239,6 +242,7 @@ private struct RuleEditorRow: View {
     @Binding var draft: RuleDraft
     let locale: Locale
     let errors: [RuleDraftValidationError]
+    let isDirty: Bool
     let save: () -> Void
     let test: () -> Void
     let delete: () -> Void
@@ -310,6 +314,8 @@ private struct RuleEditorRow: View {
                     LocalizedLabel("rule.save")
                 }
                 .buttonStyle(.borderedProminent)
+                .opacity(isDirty ? 1 : 0.4)
+                .disabled(!isDirty)
             }
 
             ForEach(errors, id: \.localizationKey) { error in
