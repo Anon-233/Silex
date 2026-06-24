@@ -71,9 +71,6 @@ final class AppModel: ObservableObject {
             try settingsRepository?.save(settings)
             applyLaunchAtLoginSetting()
             scheduleNextCollection()
-            if settings.notificationsEnabled {
-                Task { await requestNotificationPermissionIfNeeded() }
-            }
         } catch {
             SilexLog.app.error("Saving settings failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
@@ -394,22 +391,6 @@ final class AppModel: ObservableObject {
                 kind: .error,
                 titleKey: "error.loginItem.title",
                 message: error.localizedDescription
-            )
-        }
-    }
-
-    private func requestNotificationPermissionIfNeeded() async {
-        let center = UNUserNotificationCenter.current()
-        let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .notDetermined else { return }
-        let granted = try? await center.requestAuthorization(options: [.alert, .sound])
-        if granted != true {
-            self.settings.notificationsEnabled = false
-            try? self.settingsRepository?.save(self.settings)
-            presentedAlert = AppAlert(
-                kind: .error,
-                titleKey: "error.notifications.title",
-                message: localized("error.notifications.denied", locale: locale)
             )
         }
     }

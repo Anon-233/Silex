@@ -1,5 +1,6 @@
 import SwiftUI
 import SilexCore
+import UserNotifications
 
 struct SettingsView: View {
     @ObservedObject var model: AppModel
@@ -49,8 +50,12 @@ struct SettingsView: View {
                 SettingRow(labelKey: "settings.notifications") {
                     Toggle("", isOn: $model.settings.notificationsEnabled)
                         .labelsHidden()
-                        .onChange(of: model.settings.notificationsEnabled) {
-                            model.saveSettings()
+                        .onChange(of: model.settings.notificationsEnabled) { newValue in
+                            if newValue {
+                                Task { await requestAndSaveNotification() }
+                            } else {
+                                model.saveSettings()
+                            }
                         }
                 }
 
@@ -208,6 +213,31 @@ struct SettingsView: View {
         if let path = SmartctlLocator().locate(configuredPath: nil) {
             smartctlPathText = path
             model.settings.smartctlPath = path
+            model.saveSettings()
+        }
+    }
+
+    private func requestAndSaveNotification() async {
+        let center = UNUserNotificationCenter.current()
+        let status = await center.notificationSettings().authorizationStatus
+        switch status {
+        case .notDetermined:
+            let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+            if !granted {
+                model.settings.notificationsEnabled = false
+            }
+            model.saveSettings()
+        case .denied:
+            model.settings.notificationsEnabled = false
+            model.saveSettings()
+            model.presentedAlert = AppAlert(
+                kind: .error,
+                titleKey: "error.notifications.title",
+                message: localized("error.notifications.denied", locale: model.locale)
+            )
+        case .authorized, .provisional, .ephemeral:
+            model.saveSettings()
+        @unknown default:
             model.saveSettings()
         }
     }
