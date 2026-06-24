@@ -17,8 +17,7 @@ struct SilexApplication: App {
                 MenuBarView(model: model)
             }
         } label: {
-            Image(systemName: "scalemass")
-                .imageScale(.large)
+            Image(systemName: "s.circle")
         }
         .menuBarExtraStyle(.window)
     }
