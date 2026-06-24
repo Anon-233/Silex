@@ -238,7 +238,6 @@ let tests: [HarnessTest] = [
             collectionIntervalHours: 6,
             smartctlPath: "/opt/homebrew/bin/smartctl",
             language: .simplifiedChinese,
-            notificationsEnabled: true,
             launchAtLogin: true
         )
         try settings.save(value)
@@ -1222,9 +1221,8 @@ let tests: [HarnessTest] = [
             "rule test presentation state"
         )
         try require(
-            appModel.contains("ConditionalAlertNotifier")
-                && appModel.contains("settings.notificationsEnabled"),
-            "notification setting policy"
+            appModel.contains("SystemNotificationClient"),
+            "notification delivery path"
         )
         try require(
             (main + localization).contains(".environment(\\.locale, model.locale)"),

@@ -79,22 +79,22 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var collectionIntervalHours: Double
     public var smartctlPath: String?
     public var language: LanguagePreference
-    public var notificationsEnabled: Bool
     public var launchAtLogin: Bool
 
     public init(
         collectionIntervalHours: Double = 8,
         smartctlPath: String? = nil,
         language: LanguagePreference = .system,
-        notificationsEnabled: Bool = true,
         launchAtLogin: Bool = false
     ) {
         self.collectionIntervalHours = collectionIntervalHours
         self.smartctlPath = smartctlPath
         self.language = language
-        self.notificationsEnabled = notificationsEnabled
         self.launchAtLogin = launchAtLogin
     }
+
+    // Kept for backward compat with old DB records; no longer used in logic.
+    public var notificationsEnabled: Bool = true
 }
 
 public struct DriveSample: Codable, Equatable, Identifiable, Sendable {

@@ -4,7 +4,6 @@ import Foundation
 import OSLog
 import ServiceManagement
 import SilexCore
-import UserNotifications
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -128,18 +127,14 @@ final class AppModel: ObservableObject {
         Task {
             let match = AlertEngine().simulatedMatch(for: rule, now: .now)
             let status: RuleTestPresentation.NotificationStatus
-            if settings.notificationsEnabled {
-                do {
-                    try await SystemNotificationClient().post(match)
-                    status = .delivered
-                } catch {
-                    SilexLog.app.error(
-                        "Testing rule notification failed: \(error.localizedDescription, privacy: .public)"
-                    )
-                    status = .failed(error.localizedDescription)
-                }
-            } else {
-                status = .disabled
+            do {
+                try await SystemNotificationClient().post(match)
+                status = .delivered
+            } catch {
+                SilexLog.app.error(
+                    "Testing rule notification failed: \(error.localizedDescription, privacy: .public)"
+                )
+                status = .failed(error.localizedDescription)
             }
             ruleTestPresentation = RuleTestPresentation(
                 ruleName: match.ruleName,
@@ -236,7 +231,6 @@ final class AppModel: ObservableObject {
             observeWake()
             Task { [weak self] in
                 await self?.refreshServiceStatus()
-                await self?.syncNotificationSetting()
             }
         } catch {
             SilexLog.app.error("Application bootstrap failed: \(error.localizedDescription, privacy: .public)")
@@ -260,10 +254,7 @@ final class AppModel: ObservableObject {
             collector: SMARTServiceClient(),
             samples: sampleRepository,
             rules: ruleRepository,
-            notifier: ConditionalAlertNotifier(
-                isEnabled: settings.notificationsEnabled,
-                notifier: SystemNotificationClient()
-            )
+            notifier: SystemNotificationClient()
         )
         do {
             let outcome = try await coordinator.collect(source: source)
@@ -346,17 +337,6 @@ final class AppModel: ObservableObject {
 
     private func syncLaunchAtLoginWithSystem() {
         applyLaunchAtLoginSetting()
-    }
-
-    private func syncNotificationSetting() async {
-        let center = UNUserNotificationCenter.current()
-        let notifSettings = await center.notificationSettings()
-        let systemGranted = notifSettings.authorizationStatus == .authorized
-            || notifSettings.authorizationStatus == .provisional
-        if settings.notificationsEnabled != systemGranted {
-            settings.notificationsEnabled = systemGranted
-            try? settingsRepository?.save(settings)
-        }
     }
 
     private func applyLaunchAtLoginSetting() {
