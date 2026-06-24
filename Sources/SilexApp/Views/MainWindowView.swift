@@ -96,8 +96,18 @@ struct MainWindowView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            AppMark()
-                .frame(width: 28, height: 28)
+            Image(systemName: "waveform.path.ecg")
+                .font(.system(size: 24, weight: .semibold))
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color(red: 1.00, green: 0.44, blue: 0.72),
+                                 Color(red: 0.31, green: 0.55, blue: 1.00),
+                                 Color(red: 0.13, green: 0.84, blue: 0.78)],
+                        startPoint: .bottomLeading,
+                        endPoint: .topTrailing
+                    )
+                )
             VStack(alignment: .leading, spacing: 3) {
                 LocalizedLabel("app.name")
                     .font(.system(size: 17, weight: .bold))
