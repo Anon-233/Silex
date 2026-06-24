@@ -17,30 +17,42 @@ struct SilexApplication: App {
                 MenuBarView(model: model)
             }
         } label: {
-            if let image = menuBarIcon() {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 18, height: 18)
-            }
+            menuBarIconView()
+                .frame(width: 18, height: 18)
         }
         .menuBarExtraStyle(.window)
     }
 }
 
-private func menuBarIcon() -> NSImage? {
-    let name = "logo"
-    let bundles: [Bundle] = Bundle.main.bundleURL.pathExtension == "app"
-        ? [.main, .module]
-        : [.module, .main]
-    for bundle in bundles {
-        if let path = bundle.path(forResource: name, ofType: "png"),
-           let image = NSImage(contentsOfFile: path) {
-            image.isTemplate = false
-            return image
+private struct MenuBarIcon: View {
+    var body: some View {
+        if let nsImage = loadLogo() {
+            Image(nsImage: nsImage)
+                .resizable()
+                .scaledToFit()
+        } else {
+            AppMark()
         }
     }
-    return nil
+
+    private func loadLogo() -> NSImage? {
+        let name = "logo"
+        let bundles: [Bundle] = Bundle.main.bundleURL.pathExtension == "app"
+            ? [.main, .module]
+            : [.module, .main]
+        for bundle in bundles {
+            if let path = bundle.path(forResource: name, ofType: "png"),
+               let image = NSImage(contentsOfFile: path) {
+                image.isTemplate = false
+                return image
+            }
+        }
+        return nil
+    }
+}
+
+private func menuBarIconView() -> some View {
+    MenuBarIcon()
 }
 
 SilexApplication.main()
