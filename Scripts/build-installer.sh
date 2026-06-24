@@ -187,5 +187,7 @@ fi
   -srcfolder "$DMG_ROOT" \
   "$DISK_IMAGE"
 
+"$ROOT/Scripts/verify-installer.sh" "$VERSION"
+
 echo "$PRODUCT_PACKAGE"
 echo "$DISK_IMAGE"

@@ -629,6 +629,91 @@ let tests: [HarnessTest] = [
             "expected DMG contents"
         )
     },
+    HarnessTest(name: "source and packaging enforce offline least privilege") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let sourceRoot = root.appendingPathComponent("Sources")
+        let enumerator = FileManager.default.enumerator(
+            at: sourceRoot,
+            includingPropertiesForKeys: nil
+        )
+        let bannedSourceText = [
+            "URLSession",
+            "import Network",
+            "NWConnection",
+            "import WebKit",
+            "WKWebView",
+            "http://",
+            "https://",
+            "brew install"
+        ]
+        while let url = enumerator?.nextObject() as? URL {
+            guard url.pathExtension == "swift" else {
+                continue
+            }
+            let source = try String(contentsOf: url, encoding: .utf8)
+            for banned in bannedSourceText {
+                try require(
+                    !source.contains(banned),
+                    "\(url.lastPathComponent) contains \(banned)"
+                )
+            }
+        }
+
+        let entitlementsData = try Data(
+            contentsOf: root.appendingPathComponent(
+                "Resources/App/Silex.entitlements"
+            )
+        )
+        let entitlements = try PropertyListSerialization.propertyList(
+            from: entitlementsData,
+            format: nil
+        ) as? [String: Any] ?? [:]
+        for key in entitlements.keys {
+            let normalized = key.lowercased()
+            try require(
+                !normalized.contains("network")
+                    && !normalized.contains("client")
+                    && !normalized.contains("server"),
+                "network entitlement \(key)"
+            )
+        }
+
+        let infoData = try Data(
+            contentsOf: root.appendingPathComponent(
+                "Resources/App/Info.plist"
+            )
+        )
+        let info = try PropertyListSerialization.propertyList(
+            from: infoData,
+            format: nil
+        ) as? [String: Any] ?? [:]
+        let privacyKeys = info.keys.filter {
+            $0.hasPrefix("NS") && $0.hasSuffix("UsageDescription")
+        }
+        try requireEqual(privacyKeys, [], "unrelated privacy descriptions")
+
+        let verifier = try String(
+            contentsOf: root.appendingPathComponent(
+                "Scripts/verify-installer.sh"
+            ),
+            encoding: .utf8
+        )
+        for required in [
+            "codesign --verify",
+            "otool -L",
+            "pkgutil --expand-full",
+            "hdiutil verify",
+            "hdiutil attach",
+            "Network.framework",
+            "CFNetwork.framework",
+            "WebKit.framework"
+        ] {
+            try require(
+                verifier.contains(required),
+                "verifier missing \(required)"
+            )
+        }
+    },
     HarnessTest(name: "English and Chinese localization keys match") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("Sources/SilexApp/Resources")
