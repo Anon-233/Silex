@@ -320,14 +320,24 @@ private struct InstallSmartctlView: View {
 
             HStack {
                 if !didComplete {
-                    Button {
-                        startInstall()
-                    } label: {
-                        Label("Run", systemImage: "play.fill")
-                            .frame(minWidth: 80)
+                    if isRunning {
+                        Button {
+                            process?.terminate()
+                        } label: {
+                            Label("Stop", systemImage: "stop.fill")
+                                .frame(minWidth: 80)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                    } else {
+                        Button {
+                            startInstall()
+                        } label: {
+                            Label("Run", systemImage: "play.fill")
+                                .frame(minWidth: 80)
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isRunning)
                 }
                 Spacer()
                 if didComplete {
@@ -366,7 +376,9 @@ private struct InstallSmartctlView: View {
                 isRunning = false
                 didComplete = true
                 exitCode = proc.terminationStatus
-                output += "\n$ echo $?\n\(exitCode)"
+                if exitCode != 0 {
+                    output += "\nProcess exited with code \(exitCode)"
+                }
             }
         }
         self.process = process
