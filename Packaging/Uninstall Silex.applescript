@@ -1,6 +1,6 @@
-set promptText to "Remove Silex and its privileged SMART service?
+set promptText to "Remove Silex and all data?
 
-移除 Silex 及其特权 SMART 服务？"
+移除 Silex 及所有数据？"
 set answer to display dialog promptText buttons {"Cancel", "Uninstall"} default button "Uninstall" cancel button "Cancel" with icon caution
 
 if button returned of answer is "Uninstall" then

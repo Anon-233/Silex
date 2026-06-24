@@ -88,8 +88,8 @@ com.anon233.Silex.pkg
 ```
 
 Installing a package with a newer version updates the existing application and
-SMART service in place. It does not create another copy. The default package
-rejects accidental downgrades and preserves the database and settings.
+daemon in place. It does not create another copy. The default package
+rejects accidental downgrades. Uninstalling removes all data.
 
 Generated build output, applications, packages, and disk images are excluded
 by `.gitignore`.
@@ -121,8 +121,8 @@ history. Package updates do not call `launchctl enable`, so they do not
 deliberately override a disabled background-item preference.
 
 The DMG includes `Uninstall Silex.app`. It removes the app, package receipt,
-daemon, helper, and packaged smartctl after administrator authorization. It
-preserves user history by default.
+daemon, helper, packaged smartctl, and all user data after administrator
+authorization.
 
 ## Offline and permissions
 
