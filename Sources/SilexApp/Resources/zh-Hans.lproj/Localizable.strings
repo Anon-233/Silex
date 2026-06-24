@@ -4,11 +4,8 @@
 "action.rules" = "规则";
 "action.open" = "打开 Silex";
 "action.quit" = "退出";
-"action.install" = "安装";
-"action.run" = "运行";
-"action.close" = "关闭";
-"action.autoFill" = "自动填入";
-"action.enable" = "启用";
+"action.refresh" = "刷新";
+"action.backgroundItems" = "后台项目…";
 "action.previous" = "上一页";
 "action.next" = "下一页";
 "page.settings" = "设置";
@@ -37,7 +34,6 @@
 "settings.intervalUnit" = "h";
 "settings.notifications" = "通知";
 "settings.launchAtLogin" = "登录时启动";
-"settings.smartctlPath" = "smartctl 路径";
 "settings.storage" = "存储位置";
 "settings.service" = "特权 SMART 服务";
 "settings.exportJSON" = "导出 JSON";
@@ -51,11 +47,8 @@
 "status.noData" = "暂无采样";
 "status.lastCollected" = "上次采集";
 "status.collecting" = "正在采集…";
-"status.service.enabled" = "已启用";
-"status.service.notRegistered" = "未注册";
-"status.service.requiresApproval" = "需要批准";
-"status.service.notFound" = "未找到服务";
-"error.serviceApproval" = "请在“系统设置 > 登录项”中批准 Silex。";
+"status.service.available" = "可用";
+"status.service.unavailable" = "不可用或已禁用";
 "metric.temperature" = "温度";
 "metric.availableSpare" = "可用备用空间";
 "metric.availableSpareThreshold" = "备用空间阈值";
@@ -83,11 +76,6 @@
 "chart.temperature" = "温度（°C）";
 "chart.wear" = "寿命与备用空间（%）";
 "chart.events" = "事件（次）";
-"install.title" = "安装 smartmontools";
-"install.command" = "安装命令";
-"install.output" = "终端输出";
-"install.ready" = "可以运行 brew install smartmontools。";
-"install.finished" = "安装进程已结束。";
 "overview.model" = "型号";
 "overview.temperature" = "温度";
 "overview.read" = "读取";
@@ -97,4 +85,3 @@
 "overview.powerOn" = "通电时间";
 "overview.errors" = "数据完整性错误";
 "message.emptyChart" = "采集数据后显示历史趋势。";
-

@@ -55,10 +55,6 @@ struct MainWindowView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .background(WindowConfigurator())
-        .sheet(isPresented: $model.isInstallSheetPresented) {
-            InstallSheet()
-                .environment(\.locale, model.locale)
-        }
         .animation(.easeInOut(duration: 0.18), value: model.isRuleOverlayPresented)
     }
 
@@ -133,4 +129,3 @@ struct MainWindowView: View {
         .padding(.horizontal, 4)
     }
 }
-

@@ -4,11 +4,8 @@
 "action.rules" = "Rules";
 "action.open" = "Open Silex";
 "action.quit" = "Quit";
-"action.install" = "Install";
-"action.run" = "Run";
-"action.close" = "Close";
-"action.autoFill" = "Auto Fill";
-"action.enable" = "Enable";
+"action.refresh" = "Refresh";
+"action.backgroundItems" = "Background Items…";
 "action.previous" = "Previous";
 "action.next" = "Next";
 "page.settings" = "Settings";
@@ -37,7 +34,6 @@
 "settings.intervalUnit" = "h";
 "settings.notifications" = "Notifications";
 "settings.launchAtLogin" = "Launch at Login";
-"settings.smartctlPath" = "smartctl Path";
 "settings.storage" = "Storage Location";
 "settings.service" = "Privileged SMART Service";
 "settings.exportJSON" = "Export JSON";
@@ -51,11 +47,8 @@
 "status.noData" = "No samples yet";
 "status.lastCollected" = "Last collected";
 "status.collecting" = "Collecting…";
-"status.service.enabled" = "Enabled";
-"status.service.notRegistered" = "Not registered";
-"status.service.requiresApproval" = "Approval required";
-"status.service.notFound" = "Service not found";
-"error.serviceApproval" = "Approve Silex in System Settings > Login Items.";
+"status.service.available" = "Available";
+"status.service.unavailable" = "Unavailable or disabled";
 "metric.temperature" = "Temperature";
 "metric.availableSpare" = "Available Spare";
 "metric.availableSpareThreshold" = "Spare Threshold";
@@ -83,11 +76,6 @@
 "chart.temperature" = "Temperature (°C)";
 "chart.wear" = "Wear and spare (%)";
 "chart.events" = "Events (count)";
-"install.title" = "Install smartmontools";
-"install.command" = "Install command";
-"install.output" = "Terminal Output";
-"install.ready" = "Ready to run brew install smartmontools.";
-"install.finished" = "Installation process finished.";
 "overview.model" = "Model";
 "overview.temperature" = "Temperature";
 "overview.read" = "Read";
@@ -97,4 +85,3 @@
 "overview.powerOn" = "Power-on Hours";
 "overview.errors" = "Integrity Errors";
 "message.emptyChart" = "Collect data to display history.";
-

@@ -393,6 +393,37 @@ let tests: [HarnessTest] = [
         try requireEqual(dictionary["UserName"] as? String, "root", "daemon user")
         try require(dictionary["KeepAlive"] == nil, "daemon must be on demand")
     },
+    HarnessTest(name: "settings expose package service without Homebrew installer") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let sources = [
+            "Sources/SilexApp/AppModel.swift",
+            "Sources/SilexApp/Views/SettingsView.swift",
+            "Sources/SilexApp/Views/MainWindowView.swift"
+        ]
+        let content = try sources.map {
+            try String(
+                contentsOf: root.appendingPathComponent($0),
+                encoding: .utf8
+            )
+        }.joined()
+        try require(
+            !content.contains("enablePrivilegedService"),
+            "no app registration"
+        )
+        try require(!content.contains("brew install"), "no Homebrew execution")
+        try require(
+            content.contains("openBackgroundItemsSettings"),
+            "must expose macOS background controls"
+        )
+        try require(
+            !FileManager.default.fileExists(
+                atPath: root.appendingPathComponent(
+                    "Sources/SilexApp/Views/InstallSheet.swift"
+                ).path
+            ),
+            "network-capable install sheet must be removed"
+        )
+    },
     HarnessTest(name: "English and Chinese localization keys match") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("Sources/SilexApp/Resources")

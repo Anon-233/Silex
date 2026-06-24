@@ -14,9 +14,8 @@ final class AppModel: ObservableObject {
     @Published var range: HistoryRange = .days30
     @Published var isCollecting = false
     @Published var lastError: String?
-    @Published var serviceStatus: BackgroundServiceStatus = .notRegistered
+    @Published var serviceStatus: BackgroundServiceStatus = .unavailable
     @Published var isRuleOverlayPresented = false
-    @Published var isInstallSheetPresented = false
 
     let pageCount = 6
 
@@ -128,24 +127,19 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func autoFillSmartctlPath() {
-        settings.smartctlPath = SmartctlLocator().locate(configuredPath: settings.smartctlPath)
-        saveSettings()
+    func refreshServiceStatus() async {
+        serviceStatus = await serviceController.status()
+        scheduleNextCollection()
     }
 
-    func enablePrivilegedService() {
-        do {
-            try serviceController.enable()
-            refreshServiceStatus()
-            if serviceStatus == .requiresApproval {
-                openLoginItemsSettings()
-            }
-            scheduleNextCollection()
-        } catch {
-            SilexLog.service.error("Service registration failed: \(error.localizedDescription, privacy: .public)")
-            lastError = error.localizedDescription
-            refreshServiceStatus()
+    func openBackgroundItemsSettings() {
+        guard let url = URL(
+            string:
+                "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
+        ) else {
+            return
         }
+        NSWorkspace.shared.open(url)
     }
 
     func showStorageInFinder() {
@@ -202,9 +196,10 @@ final class AppModel: ObservableObject {
             rules = try ruleRepository.all()
             settings = try settingsRepository.load()
             applyLaunchAtLoginSetting()
-            refreshServiceStatus()
             observeWake()
-            scheduleNextCollection()
+            Task { [weak self] in
+                await self?.refreshServiceStatus()
+            }
         } catch {
             SilexLog.app.error("Application bootstrap failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
@@ -234,11 +229,12 @@ final class AppModel: ObservableObject {
         } catch {
             SilexLog.collection.error("Collection failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
+            await refreshServiceStatus()
         }
     }
 
     private func scheduleNextCollection() {
-        guard serviceStatus == .enabled else {
+        guard serviceStatus == .available else {
             scheduler.cancel()
             return
         }
@@ -282,10 +278,6 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func refreshServiceStatus() {
-        serviceStatus = serviceController.status
-    }
-
     private func applyLaunchAtLoginSetting() {
         do {
             if settings.launchAtLogin {
@@ -299,15 +291,6 @@ final class AppModel: ObservableObject {
             SilexLog.app.error("Login item update failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
-    }
-
-    private func openLoginItemsSettings() {
-        guard let url = URL(
-            string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
-        ) else {
-            return
-        }
-        NSWorkspace.shared.open(url)
     }
 
     private func export(suggestedName: String, data: Data?) {

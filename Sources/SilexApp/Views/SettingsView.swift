@@ -43,40 +43,28 @@ struct SettingsView: View {
                         .labelsHidden()
                 }
 
-                settingRow("settings.smartctlPath") {
-                    HStack {
-                        TextField("", text: smartctlPath)
-                            .textFieldStyle(.plain)
-                            .frame(width: 260)
-                        Button {
-                            model.autoFillSmartctlPath()
-                        } label: {
-                            LocalizedLabel("action.autoFill")
-                        }
-                        .buttonStyle(.plain)
-                        Button {
-                            model.isInstallSheetPresented = true
-                        } label: {
-                            LocalizedLabel("action.install")
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
                 settingRow("settings.service") {
                     HStack {
                         Text(serviceStatus)
                             .foregroundStyle(
-                                model.serviceStatus == .enabled ? .green : .secondary
+                                model.serviceStatus == .available
+                                    ? .green
+                                    : .secondary
                             )
-                        if model.serviceStatus != .enabled {
-                            Button {
-                                model.enablePrivilegedService()
-                            } label: {
-                                LocalizedLabel("action.enable")
+                        Button {
+                            Task {
+                                await model.refreshServiceStatus()
                             }
-                            .buttonStyle(.plain)
+                        } label: {
+                            LocalizedLabel("action.refresh")
                         }
+                        .buttonStyle(.plain)
+                        Button {
+                            model.openBackgroundItemsSettings()
+                        } label: {
+                            LocalizedLabel("action.backgroundItems")
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -116,12 +104,6 @@ struct SettingsView: View {
                 }
             }
 
-            if model.serviceStatus == .requiresApproval {
-                LocalizedLabel("error.serviceApproval")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-
             if let error = model.lastError {
                 Text(error)
                     .font(.caption)
@@ -135,23 +117,12 @@ struct SettingsView: View {
         }
     }
 
-    private var smartctlPath: Binding<String> {
-        Binding(
-            get: { model.settings.smartctlPath ?? "" },
-            set: { model.settings.smartctlPath = $0.isEmpty ? nil : $0 }
-        )
-    }
-
     private var serviceStatus: String {
         switch model.serviceStatus {
-        case .enabled:
-            localized("status.service.enabled", locale: model.locale)
-        case .notRegistered:
-            localized("status.service.notRegistered", locale: model.locale)
-        case .requiresApproval:
-            localized("status.service.requiresApproval", locale: model.locale)
-        case .notFound:
-            localized("status.service.notFound", locale: model.locale)
+        case .available:
+            localized("status.service.available", locale: model.locale)
+        case .unavailable:
+            localized("status.service.unavailable", locale: model.locale)
         }
     }
 
@@ -168,4 +139,3 @@ struct SettingsView: View {
         }
     }
 }
-
