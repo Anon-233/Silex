@@ -52,13 +52,8 @@ struct SettingsView: View {
                             }
                         }
                     } label: {
-                        HStack {
-                            Text(currentLanguageLabel)
-                                .frame(width: 130, alignment: .leading)
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(SilexTheme.muted)
-                        }
+                        Text(currentLanguageLabel)
+                            .frame(width: 130, alignment: .leading)
                     }
                     .buttonStyle(.borderless)
                 }
