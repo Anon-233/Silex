@@ -14,50 +14,103 @@ public enum SMARTServiceClientError: Error, LocalizedError {
     }
 }
 
+private final class XPCReplyGate<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Value, any Error>?
+
+    init(_ continuation: CheckedContinuation<Value, any Error>) {
+        self.continuation = continuation
+    }
+
+    func resume(with result: Result<Value, any Error>) {
+        lock.lock()
+        guard let continuation else {
+            lock.unlock()
+            return
+        }
+        self.continuation = nil
+        lock.unlock()
+        continuation.resume(with: result)
+    }
+}
+
 public final class SMARTServiceClient: SMARTCollecting, @unchecked Sendable {
     public init() {}
 
     public func collect() async throws -> SmartctlCommandResult {
-        try await withCheckedThrowingContinuation { continuation in
-            let connection = NSXPCConnection(
-                machServiceName: SMARTServiceConstants.machServiceName,
-                options: .privileged
-            )
-            connection.remoteObjectInterface = NSXPCInterface(with: SMARTServiceProtocol.self)
-            connection.resume()
-
-            let proxy = connection.remoteObjectProxyWithErrorHandler { error in
-                connection.invalidate()
-                continuation.resume(
-                    throwing: SMARTServiceClientError.unavailable(error.localizedDescription)
-                )
-            }
-
-            guard let service = proxy as? SMARTServiceProtocol else {
-                connection.invalidate()
-                continuation.resume(throwing: SMARTServiceClientError.emptyResponse)
-                return
-            }
-
+        try await withService { service, finish in
             service.collectBuiltInDrive { data, status, errorText in
-                connection.invalidate()
                 guard let data else {
-                    continuation.resume(
-                        throwing: SMARTServiceClientError.unavailable(
-                            errorText.map(String.init) ?? "No response"
+                    finish(
+                        .failure(
+                            SMARTServiceClientError.unavailable(
+                                errorText.map(String.init) ?? "No response"
+                            )
                         )
                     )
                     return
                 }
-                continuation.resume(
-                    returning: SmartctlCommandResult(
-                        stdout: data as Data,
-                        stderr: Data((errorText.map(String.init) ?? "").utf8),
-                        exitStatus: status.int32Value
+                finish(
+                    .success(
+                        SmartctlCommandResult(
+                            stdout: data as Data,
+                            stderr: Data(
+                                (errorText.map(String.init) ?? "").utf8
+                            ),
+                            exitStatus: status.int32Value
+                        )
                     )
                 )
             }
         }
     }
-}
 
+    public func probe() async -> Bool {
+        (try? await withService { service, finish in
+            service.probe { finish(.success($0)) }
+        }) ?? false
+    }
+
+    private func withService<T: Sendable>(
+        _ operation: @escaping (
+            SMARTServiceProtocol,
+            @escaping (Result<T, any Error>) -> Void
+        ) -> Void
+    ) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            let gate = XPCReplyGate(continuation)
+            let connection = NSXPCConnection(
+                machServiceName: SMARTServiceConstants.machServiceName,
+                options: .privileged
+            )
+            connection.remoteObjectInterface = NSXPCInterface(
+                with: SMARTServiceProtocol.self
+            )
+            connection.resume()
+
+            let proxy = connection.remoteObjectProxyWithErrorHandler { error in
+                connection.invalidate()
+                gate.resume(
+                    with: .failure(
+                        SMARTServiceClientError.unavailable(
+                            error.localizedDescription
+                        )
+                    )
+                )
+            }
+
+            guard let service = proxy as? SMARTServiceProtocol else {
+                connection.invalidate()
+                gate.resume(
+                    with: .failure(SMARTServiceClientError.emptyResponse)
+                )
+                return
+            }
+
+            operation(service) { result in
+                connection.invalidate()
+                gate.resume(with: result)
+            }
+        }
+    }
+}

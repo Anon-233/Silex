@@ -1,73 +1,33 @@
 import Foundation
-import ServiceManagement
 
 public enum BackgroundServiceStatus: Equatable, Sendable {
-    case notRegistered
-    case enabled
-    case requiresApproval
-    case notFound
+    case available
+    case unavailable
 }
 
-public protocol ServiceRegistering: Sendable {
-    var status: BackgroundServiceStatus { get }
-    func register() throws
-    func unregister() throws
+public protocol ServiceProbing: Sendable {
+    func isAvailable() async -> Bool
+}
+
+extension SMARTServiceClient: ServiceProbing {
+    public func isAvailable() async -> Bool {
+        await probe()
+    }
 }
 
 public struct ServiceController: Sendable {
-    private let registration: any ServiceRegistering
+    private let probe: any ServiceProbing
 
     public init() {
-        registration = SMAppServiceRegistration()
+        probe = SMARTServiceClient()
     }
 
-    public init(registration: any ServiceRegistering) {
-        self.registration = registration
+    public init(probe: any ServiceProbing) {
+        self.probe = probe
     }
 
-    public var status: BackgroundServiceStatus {
-        registration.status
-    }
-
-    public func enable() throws {
-        try registration.register()
-    }
-
-    public func disable() throws {
-        try registration.unregister()
-    }
-
-    public static func map(_ status: SMAppService.Status) -> BackgroundServiceStatus {
-        switch status {
-        case .notRegistered:
-            .notRegistered
-        case .enabled:
-            .enabled
-        case .requiresApproval:
-            .requiresApproval
-        case .notFound:
-            .notFound
-        @unknown default:
-            .notFound
-        }
-    }
-}
-
-private final class SMAppServiceRegistration: ServiceRegistering, @unchecked Sendable {
-    private var service: SMAppService {
-        SMAppService.daemon(plistName: SMARTServiceConstants.launchDaemonPlistName)
-    }
-
-    var status: BackgroundServiceStatus {
-        ServiceController.map(service.status)
-    }
-
-    func register() throws {
-        try service.register()
-    }
-
-    func unregister() throws {
-        try service.unregister()
+    public func status() async -> BackgroundServiceStatus {
+        await probe.isAvailable() ? .available : .unavailable
     }
 }
 

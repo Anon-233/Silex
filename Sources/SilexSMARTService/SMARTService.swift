@@ -19,6 +19,12 @@ final class SMARTService: NSObject, SMARTServiceProtocol {
         self.serviceExecutableURL = serviceExecutableURL
     }
 
+    func probe(reply: @escaping (Bool) -> Void) {
+        idleTerminator.beginRequest()
+        defer { idleTerminator.endRequest() }
+        reply(true)
+    }
+
     func collectBuiltInDrive(
         reply: @escaping (NSData?, NSNumber, NSString?) -> Void
     ) {

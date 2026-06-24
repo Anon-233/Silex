@@ -136,19 +136,15 @@ final class RecordingScheduler: OneShotScheduling, @unchecked Sendable {
     }
 }
 
-final class FakeRegistration: ServiceRegistering, @unchecked Sendable {
-    var status: BackgroundServiceStatus = .notRegistered
-    private(set) var registerCalls = 0
-    private(set) var unregisterCalls = 0
+final class FakeServiceProbe: ServiceProbing, @unchecked Sendable {
+    let available: Bool
 
-    func register() throws {
-        registerCalls += 1
-        status = .enabled
+    init(available: Bool) {
+        self.available = available
     }
 
-    func unregister() throws {
-        unregisterCalls += 1
-        status = .notRegistered
+    func isAvailable() async -> Bool {
+        available
     }
 }
 
@@ -250,25 +246,33 @@ let tests: [HarnessTest] = [
         try requireEqual(executor.request?.arguments, ["-j", "-x", "/dev/disk0"], "arguments")
         let serviceURL = URL(
             fileURLWithPath:
-                "/Applications/Silex.app/Contents/Library/PrivilegedHelperTools/SilexSMARTService"
+                "/Library/PrivilegedHelperTools/com.anon233.Silex.SMARTService"
         )
         try requireEqual(
             PrivilegedSMARTPolicy.bundledExecutableURL(
                 serviceExecutableURL: serviceURL
             ).path,
-            "/Applications/Silex.app/Contents/Library/PrivilegedHelperTools/smartctl",
-            "bundled smartctl path"
+            "/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl",
+            "installed smartctl path"
         )
     },
-    HarnessTest(name: "service status and console user policy") {
-        try requireEqual(ServiceController.map(.enabled), .enabled, "enabled mapping")
-        try requireEqual(ServiceController.map(.requiresApproval), .requiresApproval, "approval mapping")
-        let registration = FakeRegistration()
-        let controller = ServiceController(registration: registration)
-        try controller.enable()
-        try controller.disable()
-        try requireEqual(registration.registerCalls, 1, "register calls")
-        try requireEqual(registration.unregisterCalls, 1, "unregister calls")
+    HarnessTest(name: "service controller only probes package-owned daemon") {
+        let available = ServiceController(
+            probe: FakeServiceProbe(available: true)
+        )
+        let unavailable = ServiceController(
+            probe: FakeServiceProbe(available: false)
+        )
+        try requireEqual(
+            await available.status(),
+            .available,
+            "available service"
+        )
+        try requireEqual(
+            await unavailable.status(),
+            .unavailable,
+            "unavailable service"
+        )
         try require(SMARTConnectionPolicy.accepts(effectiveUserID: 501, consoleUserID: 501), "console user")
         try require(!SMARTConnectionPolicy.accepts(effectiveUserID: 0, consoleUserID: 501), "root client")
     },
