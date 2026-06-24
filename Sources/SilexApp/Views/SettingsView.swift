@@ -26,6 +26,7 @@ struct SettingsView: View {
                             .tag(LanguagePreference.simplifiedChinese)
                     }
                     .labelsHidden()
+                    .frame(minWidth: 140, alignment: .leading)
                     .onChange(of: model.settings.language) {
                         model.saveSettings()
                     }
