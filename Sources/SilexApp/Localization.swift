@@ -1,8 +1,53 @@
 import SwiftUI
 import SilexCore
 
+// MARK: - Localization table loader
+
+private var cachedTable: [String: String]?
+private var cachedLocaleID: String?
+
+private func table(for locale: Locale, bundle: Bundle) -> [String: String] {
+    let identifier: String
+    switch locale.identifier {
+    case "en", "en-US":
+        identifier = "en"
+    case "zh-Hans", "zh":
+        identifier = "zh-Hans"
+    default:
+        if locale == .autoupdatingCurrent {
+            let preferred = bundle.preferredLocalizations.first ?? "en"
+            identifier = preferred == "zh-Hans" ? "zh-Hans" : "en"
+        } else {
+            identifier = "en"
+        }
+    }
+    if cachedLocaleID != identifier {
+        if let path = bundle.path(
+            forResource: "Localizable",
+            ofType: "strings",
+            inDirectory: "\(identifier).lproj"
+        ),
+        let dict = NSDictionary(contentsOfFile: path) as? [String: String] {
+            cachedTable = dict
+        } else {
+            cachedTable = [:]
+        }
+        cachedLocaleID = identifier
+    }
+    return cachedTable ?? [:]
+}
+
+func localized(_ key: String, locale: Locale) -> String {
+    let bundle: Bundle = Bundle.main.bundleURL.pathExtension == "app"
+        ? .main
+        : .module
+    return table(for: locale, bundle: bundle)[key] ?? key
+}
+
+// MARK: - Views
+
 struct LocalizedLabel: View {
-    @Environment(\.locale) private var locale
+    @Environment(\.locale) private var environmentLocale
     let key: String
 
     init(_ key: String) {
@@ -10,7 +55,7 @@ struct LocalizedLabel: View {
     }
 
     var body: some View {
-        Text(localized(key, locale: locale))
+        Text(localized(key, locale: environmentLocale))
     }
 }
 
@@ -29,19 +74,11 @@ struct LocalizedAppContent<Content: View>: View {
     var body: some View {
         content()
             .environment(\.locale, model.locale)
+            .id(model.settings.language.rawValue)
     }
 }
 
-func localized(_ key: String, locale: Locale) -> String {
-    let bundle: Bundle = Bundle.main.bundleURL.pathExtension == "app"
-        ? .main
-        : .module
-    return String(
-        localized: String.LocalizationValue(key),
-        bundle: bundle,
-        locale: locale
-    )
-}
+// MARK: - Helpers
 
 func localizedAggregationLabel(
     _ aggregation: RuleAggregation,
