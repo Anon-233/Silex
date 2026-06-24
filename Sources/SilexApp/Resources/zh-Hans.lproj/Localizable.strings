@@ -42,6 +42,8 @@
 "settings.followSystem" = "跟随系统";
 "settings.english" = "English";
 "settings.chinese" = "简体中文";
+"settings.minimumInterval" = "最小 0.25 小时";
+"action.showInFinder" = "在 Finder 中显示";
 "status.normal" = "正常";
 "status.failed" = "需要关注";
 "status.noData" = "暂无采样";
@@ -146,3 +148,6 @@
 "navigation.page.3" = "温度页";
 "navigation.page.4" = "寿命与备用空间页";
 "navigation.page.5" = "事件页";
+"rule.empty.title" = "暂无规则";
+"rule.empty.message" = "新增规则以监控 SSD 指标。";
+"rule.defaultName" = "新规则";

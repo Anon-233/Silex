@@ -42,6 +42,8 @@
 "settings.followSystem" = "Follow System";
 "settings.english" = "English";
 "settings.chinese" = "Simplified Chinese";
+"settings.minimumInterval" = "Minimum 0.25 h";
+"action.showInFinder" = "Show in Finder";
 "status.normal" = "Normal";
 "status.failed" = "Attention Required";
 "status.noData" = "No samples yet";
@@ -146,3 +148,6 @@
 "navigation.page.3" = "Temperature page";
 "navigation.page.4" = "Wear and spare page";
 "navigation.page.5" = "Events page";
+"rule.empty.title" = "No rules";
+"rule.empty.message" = "Add a rule to monitor an SSD metric.";
+"rule.defaultName" = "New Rule";

@@ -76,7 +76,8 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func saveRule(_ rule: AlertRule) {
+    @discardableResult
+    func saveRule(_ rule: AlertRule) -> Bool {
         do {
             try ruleRepository?.save(rule)
             rules = try ruleRepository?.all() ?? []
@@ -85,10 +86,12 @@ final class AppModel: ObservableObject {
                 titleKey: "result.ruleSaved.title",
                 message: localized("result.ruleSaved.message", locale: locale)
             )
+            return true
         } catch {
             SilexLog.app.error("Saving rule failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
             presentError(error)
+            return false
         }
     }
 

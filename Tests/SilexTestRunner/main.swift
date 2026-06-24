@@ -1257,6 +1257,77 @@ let tests: [HarnessTest] = [
             try require(presentation.contains(mapping), "metric presentation \(mapping)")
         }
     },
+    HarnessTest(name: "settings and rules use confirmed functional workflows") {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let settings = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/SettingsView.swift"
+            ),
+            encoding: .utf8
+        )
+        let rules = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/RuleOverlay.swift"
+            ),
+            encoding: .utf8
+        )
+        let mainWindow = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/MainWindowView.swift"
+            ),
+            encoding: .utf8
+        )
+
+        try require(
+            settings.contains("confirmationDialog")
+                && settings.contains("dialog.deleteHistory.title"),
+            "delete history confirmation"
+        )
+        for action in [
+            "model.saveSettings()",
+            "model.refreshServiceStatus()",
+            "model.openBackgroundItemsSettings()",
+            "model.showStorageInFinder()",
+            "model.exportJSON()",
+            "model.exportCSV()",
+            "model.deleteHistory()"
+        ] {
+            try require(settings.contains(action), "settings action \(action)")
+        }
+        try require(!settings.contains("model.lastError"), "no raw settings error text")
+        try require(rules.contains("RuleDraft"), "draft rule editing")
+        try require(!rules.contains("ForEach($model.rules)"), "no direct persisted rule binding")
+        try require(
+            rules.contains("dialog.unsavedRules.title")
+                && rules.contains("dialog.deleteRule.title")
+                && rules.contains("confirmationDialog"),
+            "rule confirmations"
+        )
+        try require(
+            rules.contains("model.testRule")
+                && mainWindow.contains("$model.ruleTestPresentation"),
+            "visible rule test result"
+        )
+        if
+            let saveStart = rules.range(of: "private func saveDraft"),
+            let testStart = rules.range(
+                of: "private func testDraft",
+                range: saveStart.upperBound..<rules.endIndex
+            )
+        {
+            let saveBody = rules[saveStart.lowerBound..<testStart.lowerBound]
+            try require(
+                !saveBody.contains("reloadDrafts()"),
+                "saving one rule must preserve other drafts"
+            )
+            try require(
+                saveBody.contains("baselineRules"),
+                "saved draft updates its baseline"
+            )
+        } else {
+            throw HarnessFailure(description: "rule save function boundaries missing")
+        }
+    },
     HarnessTest(name: "app packaging metadata is native and non-Dock") {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let infoURL = root.appendingPathComponent("Resources/App/Info.plist")
