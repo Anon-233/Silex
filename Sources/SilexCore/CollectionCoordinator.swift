@@ -16,10 +16,16 @@ extension RuleRepository: RulePersisting {}
 public struct CollectionOutcome: Equatable, Sendable {
     public let sample: DriveSample
     public let alerts: [AlertMatch]
+    public let notificationFailures: [AlertDeliveryFailure]
 
-    public init(sample: DriveSample, alerts: [AlertMatch]) {
+    public init(
+        sample: DriveSample,
+        alerts: [AlertMatch],
+        notificationFailures: [AlertDeliveryFailure] = []
+    ) {
         self.sample = sample
         self.alerts = alerts
+        self.notificationFailures = notificationFailures
     }
 }
 
@@ -62,18 +68,32 @@ public struct CollectionCoordinator: Sendable {
         let history = try samples.all()
         let storedRules = try rules.all()
         var matches: [AlertMatch] = []
+        var notificationFailures: [AlertDeliveryFailure] = []
 
         for var rule in storedRules {
             guard let match = engine.evaluate(rule, samples: history, now: date) else {
                 continue
             }
-            try await notifier.post(match)
             rule.lastTriggeredAt = date
             try rules.save(rule)
             matches.append(match)
+            do {
+                try await notifier.post(match)
+            } catch {
+                notificationFailures.append(
+                    AlertDeliveryFailure(
+                        ruleID: rule.id,
+                        message: error.localizedDescription
+                    )
+                )
+            }
         }
 
-        return CollectionOutcome(sample: sample, alerts: matches)
+        return CollectionOutcome(
+            sample: sample,
+            alerts: matches,
+            notificationFailures: notificationFailures
+        )
     }
 
     public func test(
@@ -85,4 +105,3 @@ public struct CollectionCoordinator: Sendable {
         return match
     }
 }
-

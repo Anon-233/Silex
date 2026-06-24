@@ -130,6 +130,21 @@ final class RecordingNotifier: AlertNotifying, @unchecked Sendable {
     }
 }
 
+struct NotifierFailure: Error, LocalizedError {
+    var errorDescription: String? {
+        "Notification delivery failed."
+    }
+}
+
+final class FailingNotifier: AlertNotifying, @unchecked Sendable {
+    private(set) var matches: [AlertMatch] = []
+
+    func post(_ match: AlertMatch) async throws {
+        matches.append(match)
+        throw NotifierFailure()
+    }
+}
+
 final class RecordingExecutor: ProcessExecuting, @unchecked Sendable {
     let result: ProcessResult
     private(set) var request: ProcessRequest?
@@ -435,6 +450,71 @@ let tests: [HarnessTest] = [
         let before = try samples.all().count
         _ = try await coordinator.test(rule: rule, at: Date(timeIntervalSince1970: 2_000))
         try requireEqual(try samples.all().count, before, "simulation must not write samples")
+    },
+    HarnessTest(name: "conditional notifier obeys notification setting") {
+        let rule = AlertRule(
+            name: "Warm", metric: .temperature, aggregation: .current,
+            windowHours: 24, comparison: .greaterThan, threshold: 20,
+            cooldownHours: 0, isEnabled: true
+        )
+        let match = AlertEngine().simulatedMatch(
+            for: rule,
+            now: Date(timeIntervalSince1970: 1_000)
+        )
+        let recorder = RecordingNotifier()
+
+        try await ConditionalAlertNotifier(
+            isEnabled: false,
+            notifier: recorder
+        ).post(match)
+        try requireEqual(recorder.matches.count, 0, "disabled notification calls")
+
+        try await ConditionalAlertNotifier(
+            isEnabled: true,
+            notifier: recorder
+        ).post(match)
+        try requireEqual(recorder.matches, [match], "enabled notification calls")
+    },
+    HarnessTest(name: "notification failure does not discard collected alert state") {
+        let database = try temporaryDatabase()
+        let samples = SampleRepository(database: database)
+        let rules = RuleRepository(database: database)
+        let notifier = FailingNotifier()
+        let collector = QueueCollector([
+            SmartctlCommandResult(
+                stdout: try appleFixture(),
+                stderr: Data(),
+                exitStatus: 0
+            )
+        ])
+        let rule = AlertRule(
+            name: "Warm", metric: .temperature, aggregation: .current,
+            windowHours: 24, comparison: .greaterThan, threshold: 20,
+            cooldownHours: 0, isEnabled: true
+        )
+        try rules.save(rule)
+        let collectedAt = Date(timeIntervalSince1970: 2_000)
+
+        let outcome = try await CollectionCoordinator(
+            collector: collector,
+            samples: samples,
+            rules: rules,
+            notifier: notifier
+        ).collect(source: .manual, at: collectedAt)
+
+        try requireEqual(outcome.alerts.count, 1, "collected alerts")
+        try requireEqual(outcome.notificationFailures.count, 1, "delivery failures")
+        try requireEqual(
+            outcome.notificationFailures.first?.ruleID,
+            rule.id,
+            "delivery failure rule"
+        )
+        try requireEqual(
+            try rules.all().first?.lastTriggeredAt,
+            collectedAt,
+            "trigger timestamp persists"
+        )
+        try requireEqual(try samples.all().count, 1, "sample remains persisted")
     },
     HarnessTest(name: "scheduler cancels prior timer and computes due date") {
         let clock = RecordingScheduler()
