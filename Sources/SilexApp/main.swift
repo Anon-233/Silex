@@ -18,10 +18,8 @@ struct SilexApplication: App {
             }
         } label: {
             Image(systemName: "waveform.path.ecg")
-                .font(.title)
+                .font(.system(size: 16, weight: .semibold))
         }
         .menuBarExtraStyle(.window)
     }
 }
-
-SilexApplication.main()
