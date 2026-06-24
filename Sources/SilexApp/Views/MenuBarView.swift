@@ -50,15 +50,11 @@ struct MenuBarView: View {
             Button {
                 openWindow(id: "main")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    NSApp.setActivationPolicy(.regular)
                     NSApp.activate()
                     if let window = NSApp.windows.first(where: {
                         $0.title == "Silex"
                     }) {
                         window.makeKeyAndOrderFront(nil)
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        NSApp.setActivationPolicy(.accessory)
                     }
                 }
             } label: {
