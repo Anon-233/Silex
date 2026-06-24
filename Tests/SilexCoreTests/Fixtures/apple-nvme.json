@@ -1,0 +1,40 @@
+{
+  "json_format_version": [1, 0],
+  "smartctl": {
+    "version": [7, 5],
+    "argv": ["smartctl", "-j", "-x", "/dev/disk0"],
+    "exit_status": 0
+  },
+  "local_time": {
+    "time_t": 1782230764,
+    "asctime": "Wed Jun 24 00:06:04 2026 CST"
+  },
+  "model_name": "APPLE SSD AP1024Z",
+  "serial_number": "07f1f1013ad9a02e",
+  "firmware_version": "2973.120",
+  "nvme_version": {
+    "string": "<1.2",
+    "value": 66047
+  },
+  "smart_status": {
+    "passed": true
+  },
+  "nvme_smart_health_information_log": {
+    "critical_warning": 0,
+    "temperature": 30,
+    "available_spare": 100,
+    "available_spare_threshold": 99,
+    "percentage_used": 0,
+    "data_units_read": 3006609,
+    "data_units_written": 2212292,
+    "host_reads": 73752824,
+    "host_writes": 69880273,
+    "controller_busy_time": 0,
+    "power_cycles": 124,
+    "power_on_hours": 27,
+    "unsafe_shutdowns": 8,
+    "media_errors": 0,
+    "num_err_log_entries": 0
+  }
+}
+
