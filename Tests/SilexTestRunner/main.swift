@@ -236,7 +236,6 @@ let tests: [HarnessTest] = [
 
         let value = AppSettings(
             collectionIntervalHours: 6,
-            smartctlPath: "/opt/homebrew/bin/smartctl",
             language: .simplifiedChinese,
             launchAtLogin: true
         )
@@ -397,6 +396,18 @@ let tests: [HarnessTest] = [
             ).path,
             "/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl",
             "installed smartctl path"
+        )
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let protocolSource = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexCore/SMARTServiceProtocol.swift"
+            ),
+            encoding: .utf8
+        )
+        try require(
+            !protocolSource.contains("customSmartctlPath")
+                && !protocolSource.contains("smartctlPath: NSString?"),
+            "privileged service must not accept user-controlled executables"
         )
     },
     HarnessTest(name: "service controller only probes package-owned daemon") {
@@ -652,6 +663,20 @@ let tests: [HarnessTest] = [
             30,
             "privileged service idle timeout"
         )
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let serviceSource = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexDaemon/DaemonService.swift"
+            ),
+            encoding: .utf8
+        )
+        try require(
+            serviceSource.contains("com.anon233.Silex.Daemon.idle")
+                && !serviceSource.contains(
+                    "com.anon233.Silex.SMARTService.idle"
+                ),
+            "runtime queue labels must use the current daemon identity"
+        )
     },
     HarnessTest(name: "exporter preserves JSON and stable CSV") {
         let value = sample(date: Date(timeIntervalSince1970: 1_000))
@@ -825,6 +850,34 @@ let tests: [HarnessTest] = [
             ),
             "network-capable install sheet must be removed"
         )
+        let settingsSource = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/SettingsView.swift"
+            ),
+            encoding: .utf8
+        )
+        for removed in [
+            "InstallSmartctlView",
+            "SmartctlLocator",
+            "smartctlPathText",
+            "brew install smartmontools",
+            "settings.smartctl"
+        ] {
+            try require(
+                !settingsSource.contains(removed),
+                "settings must not expose runtime smartctl dependency: \(removed)"
+            )
+        }
+        let modelsSource = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexCore/Models.swift"
+            ),
+            encoding: .utf8
+        )
+        try require(
+            !modelsSource.contains("public var smartctlPath"),
+            "settings model must not persist an unused smartctl path"
+        )
     },
     HarnessTest(name: "installer version comparison and downgrade policy are deterministic") {
         try requireEqual(
@@ -932,6 +985,19 @@ let tests: [HarnessTest] = [
                 && build.contains("installer-work.XXXXXX"),
             "each build must use an isolated staging directory"
         )
+        guard let verification = build.range(
+            of: "\"$ROOT/Scripts/verify-installer.sh\" \"$VERSION\""
+        ) else {
+            throw HarnessFailure(
+                description: "installer verification command missing"
+            )
+        }
+        try require(
+            !build[verification.upperBound...].contains(
+                "rm -f \"$PRODUCT_PACKAGE\""
+            ),
+            "verified standalone package must remain in dist"
+        )
         for path in [
             "Applications/Silex.app",
             "Library/LaunchDaemons/com.anon233.Silex.Daemon.plist",
@@ -980,17 +1046,21 @@ let tests: [HarnessTest] = [
             "forget package receipt"
         )
         try require(
+            uninstaller.contains(
+                "/Library/PrivilegedHelperTools/com.anon233.Silex.smartctl"
+            ),
+            "remove packaged smartctl"
+        )
+        try require(
             uninstaller.contains("/Applications/Silex.app"),
             "remove fixed app path"
         )
         try require(
-            !uninstaller.contains(
-                "/bin/rm -rf ~/Library/Application Support/Silex"
-            )
-                && !uninstaller.contains(
-                    "/bin/rm -rf \"$HOME/Library/Application Support/Silex\""
-                ),
-            "uninstaller must preserve history"
+            uninstaller.contains(
+                "set removeDataCommand to "
+                    + "\"/bin/rm -rf ~/Library/Application\\\\ Support/Silex\""
+            ),
+            "uninstaller must remove application data"
         )
         try require(
             instructions.contains("Install Silex.pkg")
@@ -1018,20 +1088,14 @@ let tests: [HarnessTest] = [
             "NWConnection",
             "import WebKit",
             "WKWebView",
-            "http://",
-            "https://",
             "brew install"
         ]
-        let allowlist: Set<String> = ["SettingsView.swift"]
         while let url = enumerator?.nextObject() as? URL {
             guard url.pathExtension == "swift" else {
                 continue
             }
             let source = try String(contentsOf: url, encoding: .utf8)
             for banned in bannedSourceText {
-                guard !allowlist.contains(url.lastPathComponent) else {
-                    continue
-                }
                 try require(
                     !source.contains(banned),
                     "\(url.lastPathComponent) contains \(banned)"
@@ -1088,7 +1152,9 @@ let tests: [HarnessTest] = [
             "hdiutil attach",
             "Network.framework",
             "CFNetwork.framework",
-            "WebKit.framework"
+            "WebKit.framework",
+            "non-system dynamic dependency",
+            "personal build path found"
         ] {
             try require(
                 verifier.contains(required),
@@ -1145,7 +1211,7 @@ let tests: [HarnessTest] = [
             encoding: .utf8
         )
         for required in [
-            "Scripts/build-installer.sh 1.0.0 1",
+            "Scripts/build-installer.sh 1.0.1 2",
             "/Applications/Silex.app",
             "com.anon233.Silex.pkg",
             "launchctl print system/com.anon233.Silex.Daemon",
@@ -1520,6 +1586,16 @@ let tests: [HarnessTest] = [
         }
         try requireEqual(info["CFBundleIdentifier"] as? String, "com.anon233.Silex", "bundle ID")
         try requireEqual(info["CFBundleExecutable"] as? String, "Silex", "executable")
+        try requireEqual(
+            info["CFBundleShortVersionString"] as? String,
+            "1.0.1",
+            "source application version"
+        )
+        try requireEqual(
+            info["CFBundleVersion"] as? String,
+            "2",
+            "source application build"
+        )
         try requireEqual(info["LSMinimumSystemVersion"] as? String, "26.0", "minimum system")
         try requireEqual(info["LSUIElement"] as? Bool, true, "menu bar app")
         try require(
@@ -1537,6 +1613,53 @@ let tests: [HarnessTest] = [
                 && !script.contains("PrivilegedHelperTools/smartctl")
                 && !script.contains("Library/LaunchDaemons"),
             "application bundle must not contain system daemon payloads"
+        )
+        try require(
+            script.contains("SILEX_VERSION=\"${SILEX_VERSION:-1.0.1}\"")
+                && script.contains("SILEX_BUILD=\"${SILEX_BUILD:-2}\""),
+            "default application build version"
+        )
+        let packageManifest = try String(
+            contentsOf: root.appendingPathComponent("Package.swift"),
+            encoding: .utf8
+        )
+        let localizationSource = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Localization.swift"
+            ),
+            encoding: .utf8
+        )
+        try require(
+            !packageManifest.contains(
+                "resources: [.process(\"Resources\")]"
+            )
+                && !localizationSource.contains(".module"),
+            "release app must not embed a user-specific SwiftPM resource path"
+        )
+        let helperData = try Data(
+            contentsOf: root.appendingPathComponent(
+                "Resources/PrivilegedHelper/Info.plist"
+            )
+        )
+        guard
+            let helperInfo = try PropertyListSerialization.propertyList(
+                from: helperData,
+                format: nil
+            ) as? [String: Any]
+        else {
+            throw HarnessFailure(
+                description: "helper Info.plist is not a dictionary"
+            )
+        }
+        try requireEqual(
+            helperInfo["CFBundleShortVersionString"] as? String,
+            "1.0.1",
+            "source helper version"
+        )
+        try requireEqual(
+            helperInfo["CFBundleVersion"] as? String,
+            "2",
+            "source helper build"
         )
     }
 ]

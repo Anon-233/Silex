@@ -38,10 +38,7 @@ private func table(for locale: Locale, bundle: Bundle) -> [String: String] {
 }
 
 func localized(_ key: String, locale: Locale) -> String {
-    let bundle: Bundle = Bundle.main.bundleURL.pathExtension == "app"
-        ? .main
-        : .module
-    return table(for: locale, bundle: bundle)[key] ?? key
+    table(for: locale, bundle: .main)[key] ?? key
 }
 
 // MARK: - Views

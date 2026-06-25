@@ -172,6 +172,36 @@ do
   done
 done
 
+NON_SYSTEM_SMARTCTL_DEPENDENCIES=$(
+  /usr/bin/otool -L "$SMARTCTL" |
+    /usr/bin/tail -n +2 |
+    /usr/bin/awk '{print $1}' |
+    /usr/bin/grep -Ev '^(/System/Library/|/usr/lib/)' || true
+)
+if [[ -n "$NON_SYSTEM_SMARTCTL_DEPENDENCIES" ]]; then
+  echo "non-system dynamic dependency found in packaged smartctl:" >&2
+  echo "$NON_SYSTEM_SMARTCTL_DEPENDENCIES" >&2
+  exit 65
+fi
+
+for binary in \
+  "$PAYLOAD_APP/Contents/MacOS/Silex" \
+  "$HELPER" \
+  "$SMARTCTL"
+do
+  PERSONAL_BUILD_PATHS=$(
+    /usr/bin/strings "$binary" |
+      /usr/bin/grep -E \
+        '/Users/[^/]+/|users\.noreply\.github\.com|@openai\.com|@anthropic\.com' \
+        || true
+  )
+  if [[ -n "$PERSONAL_BUILD_PATHS" ]]; then
+    echo "personal build path found in $binary:" >&2
+    echo "$PERSONAL_BUILD_PATHS" >&2
+    exit 65
+  fi
+done
+
 ENTITLEMENTS="$TEMP_ROOT/entitlements.plist"
 /usr/bin/codesign -d --entitlements :- "$PAYLOAD_APP" \
   > "$ENTITLEMENTS" 2>/dev/null

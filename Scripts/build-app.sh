@@ -5,8 +5,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
 APP="$DIST/Silex.app"
 CONTENTS="$APP/Contents"
-SILEX_VERSION="${SILEX_VERSION:-0.1.0}"
-SILEX_BUILD="${SILEX_BUILD:-1}"
+SILEX_VERSION="${SILEX_VERSION:-1.0.1}"
+SILEX_BUILD="${SILEX_BUILD:-2}"
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 
 if [[ "${1:-}" == "--adhoc" ]]; then

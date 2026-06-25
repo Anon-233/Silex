@@ -87,7 +87,7 @@ final class SMARTServiceListenerDelegate: NSObject, NSXPCListenerDelegate {
 }
 
 final class ServiceIdleTerminator: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.anon233.Silex.SMARTService.idle")
+    private let queue = DispatchQueue(label: "com.anon233.Silex.Daemon.idle")
     private var exitWorkItem: DispatchWorkItem?
 
     init() {

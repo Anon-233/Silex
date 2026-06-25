@@ -77,18 +77,15 @@ public enum LanguagePreference: String, Codable, CaseIterable, Sendable {
 
 public struct AppSettings: Codable, Equatable, Sendable {
     public var collectionIntervalHours: Double
-    public var smartctlPath: String?
     public var language: LanguagePreference
     public var launchAtLogin: Bool
 
     public init(
         collectionIntervalHours: Double = 8,
-        smartctlPath: String? = nil,
         language: LanguagePreference = .system,
         launchAtLogin: Bool = false
     ) {
         self.collectionIntervalHours = collectionIntervalHours
-        self.smartctlPath = smartctlPath
         self.language = language
         self.launchAtLogin = launchAtLogin
     }

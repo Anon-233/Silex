@@ -23,6 +23,9 @@ SMART history of the built-in Apple SSD.
 - Apple Swift 6.3 toolchain.
 - `smartmontools` installed through Homebrew when building the app bundle.
 
+The target Mac does not need Homebrew or a separately installed `smartctl`.
+The verified installer contains its own root-owned copy.
+
 The target Mac requires privileged access for its built-in SSD. An unprivileged
 probe returns smartctl exit status 2 with
 `IOCreatePlugInInterfaceForService failed`.
@@ -57,21 +60,22 @@ swift build --disable-sandbox
 Create and ad-hoc sign a local `Silex.app` for testing (placed in `dist/`):
 
 ```bash
-SILEX_VERSION=1.0.0 SILEX_BUILD=1 zsh Scripts/build-app.sh --adhoc
+SILEX_VERSION=1.0.1 SILEX_BUILD=2 zsh Scripts/build-app.sh --adhoc
 ```
 
 ## Build the personal installer
 
-Build version `1.0.0`, build number `1`:
+Build version `1.0.1`, build number `2`:
 
 ```bash
-Scripts/build-installer.sh 1.0.0 1
+Scripts/build-installer.sh 1.0.1 2
 ```
 
 The command generates and verifies:
 
 ```text
-dist/Silex-1.0.0.dmg
+dist/Silex-1.0.1.pkg
+dist/Silex-1.0.1.dmg
 ```
 
 Building does not install the package, request administrator privileges, or
@@ -149,7 +153,7 @@ certificates, use Developer ID signing:
 ```bash
 APP_SIGN_IDENTITY="Developer ID Application: Example" \
 INSTALLER_SIGN_IDENTITY="Developer ID Installer: Example" \
-Scripts/build-installer.sh 1.0.0 1
+Scripts/build-installer.sh 1.0.1 2
 ```
 
 To notarize, first store credentials in a Keychain profile, then add:

@@ -27,8 +27,7 @@ let package = Package(
         .executableTarget(
             name: "SilexApp",
             dependencies: ["SilexCore"],
-            path: "Sources/SilexApp",
-            resources: [.process("Resources")]
+            path: "Sources/SilexApp"
         ),
         .executableTarget(
             name: "SilexDaemon",
