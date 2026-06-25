@@ -109,7 +109,7 @@ struct MenuBarView: View {
             }
         }
         .padding(14)
-        .frame(width: 300)
+        .frame(width: 360)
     }
 
     private func menuButton(

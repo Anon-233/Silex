@@ -1211,7 +1211,7 @@ let tests: [HarnessTest] = [
             encoding: .utf8
         )
         for required in [
-            "Scripts/build-installer.sh 1.0.1 2",
+            "Scripts/build-installer.sh 1.0.1 3",
             "/Applications/Silex.app",
             "com.anon233.Silex.pkg",
             "launchctl print system/com.anon233.Silex.Daemon",
@@ -1359,8 +1359,9 @@ let tests: [HarnessTest] = [
             "default content size"
         )
         try require(
-            menuBar.contains("Spacer(minLength: 0)"),
-            "menu-bar read/write summary uses compact leading spacing"
+            menuBar.contains("Spacer(minLength: 0)")
+                && menuBar.contains(".frame(width: 360)"),
+            "menu-bar summary uses compact spacing at the original width"
         )
     },
     HarnessTest(name: "overview and trend views match approved metric contract") {
@@ -1603,7 +1604,7 @@ let tests: [HarnessTest] = [
         )
         try requireEqual(
             info["CFBundleVersion"] as? String,
-            "2",
+            "3",
             "source application build"
         )
         try requireEqual(info["LSMinimumSystemVersion"] as? String, "26.0", "minimum system")
@@ -1626,7 +1627,7 @@ let tests: [HarnessTest] = [
         )
         try require(
             script.contains("SILEX_VERSION=\"${SILEX_VERSION:-1.0.1}\"")
-                && script.contains("SILEX_BUILD=\"${SILEX_BUILD:-2}\""),
+                && script.contains("SILEX_BUILD=\"${SILEX_BUILD:-3}\""),
             "default application build version"
         )
         let packageManifest = try String(
@@ -1668,7 +1669,7 @@ let tests: [HarnessTest] = [
         )
         try requireEqual(
             helperInfo["CFBundleVersion"] as? String,
-            "2",
+            "3",
             "source helper build"
         )
     }
