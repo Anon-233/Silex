@@ -1325,6 +1325,12 @@ let tests: [HarnessTest] = [
             contentsOf: root.appendingPathComponent("Sources/SilexApp/main.swift"),
             encoding: .utf8
         )
+        let menuBar = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/SilexApp/Views/MenuBarView.swift"
+            ),
+            encoding: .utf8
+        )
 
         for removed in [
             "chevron.left",
@@ -1351,6 +1357,10 @@ let tests: [HarnessTest] = [
             appMain.contains("width: 900")
                 && appMain.contains("height: 675"),
             "default content size"
+        )
+        try require(
+            menuBar.contains("Spacer(minLength: 0)"),
+            "menu-bar read/write summary uses compact leading spacing"
         )
     },
     HarnessTest(name: "overview and trend views match approved metric contract") {

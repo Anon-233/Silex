@@ -45,7 +45,7 @@ struct MenuBarView: View {
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 if let sample = model.latestSample {
                     let analyzer = HistoryAnalyzer()
