@@ -74,7 +74,6 @@ Scripts/build-installer.sh 1.0.1 2
 The command generates and verifies:
 
 ```text
-dist/Silex-1.0.1.pkg
 dist/Silex-1.0.1.dmg
 ```
 

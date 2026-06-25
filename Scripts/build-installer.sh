@@ -268,7 +268,7 @@ fi
 
 "$ROOT/Scripts/verify-installer.sh" "$VERSION"
 
+rm -f "$PRODUCT_PACKAGE"
 rm -rf "$DIST/Silex.app"
 
-echo "$PRODUCT_PACKAGE"
 echo "$DISK_IMAGE"

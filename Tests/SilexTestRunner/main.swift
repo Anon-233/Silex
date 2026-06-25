@@ -993,10 +993,10 @@ let tests: [HarnessTest] = [
             )
         }
         try require(
-            !build[verification.upperBound...].contains(
+            build[verification.upperBound...].contains(
                 "rm -f \"$PRODUCT_PACKAGE\""
             ),
-            "verified standalone package must remain in dist"
+            "verified standalone package must be removed after DMG assembly"
         )
         for path in [
             "Applications/Silex.app",
