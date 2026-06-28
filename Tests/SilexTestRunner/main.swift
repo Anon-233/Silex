@@ -361,6 +361,42 @@ let tests: [HarnessTest] = [
             "empty domain"
         )
     },
+    HarnessTest(name: "chart hover resolver snaps only to nearby data points") {
+        let first = ChartPoint(
+            metric: .temperature,
+            date: Date(timeIntervalSince1970: 100),
+            value: 35
+        )
+        let second = ChartPoint(
+            metric: .temperature,
+            date: Date(timeIntervalSince1970: 200),
+            value: 40
+        )
+        let resolver = ChartHoverResolver()
+        let candidates = [
+            ChartHoverCandidate(point: first, x: 10, y: 20),
+            ChartHoverCandidate(point: second, x: 100, y: 120)
+        ]
+
+        try requireEqual(
+            resolver.nearestPoint(
+                to: ChartHoverLocation(x: 13, y: 24),
+                candidates: candidates,
+                maximumDistance: 6
+            ),
+            first,
+            "nearest hover point"
+        )
+        try requireEqual(
+            resolver.nearestPoint(
+                to: ChartHoverLocation(x: 50, y: 50),
+                candidates: candidates,
+                maximumDistance: 6
+            ),
+            nil,
+            "distant hover point"
+        )
+    },
     HarnessTest(name: "alert engine evaluates aggregation and cooldown") {
         let engine = AlertEngine()
         let now = Date(timeIntervalSince1970: 100_000)
@@ -1211,7 +1247,7 @@ let tests: [HarnessTest] = [
             encoding: .utf8
         )
         for required in [
-            "Scripts/build-installer.sh 1.0.1 3",
+            "Scripts/build-installer.sh 1.0.1 4",
             "/Applications/Silex.app",
             "com.anon233.Silex.pkg",
             "launchctl print system/com.anon233.Silex.Daemon",
@@ -1426,9 +1462,15 @@ let tests: [HarnessTest] = [
             "explicit Swift Charts series"
         )
         try require(
-            trend.contains("SpatialTapGesture")
-                && !trend.contains("DragGesture(minimumDistance: 0)"),
-            "chart click does not consume page drag"
+            !trend.contains("SpatialTapGesture")
+                && !trend.contains("focusNearest("),
+            "chart no longer selects series by tapping curves"
+        )
+        try require(
+            trend.contains("onContinuousHover")
+                && trend.contains("hoveredPoint")
+                && trend.contains("ChartHoverResolver"),
+            "chart hover tooltip snaps to points"
         )
         for mapping in [
             "case .dataWritten:",
@@ -1604,7 +1646,7 @@ let tests: [HarnessTest] = [
         )
         try requireEqual(
             info["CFBundleVersion"] as? String,
-            "3",
+            "4",
             "source application build"
         )
         try requireEqual(info["LSMinimumSystemVersion"] as? String, "26.0", "minimum system")
@@ -1627,7 +1669,7 @@ let tests: [HarnessTest] = [
         )
         try require(
             script.contains("SILEX_VERSION=\"${SILEX_VERSION:-1.0.1}\"")
-                && script.contains("SILEX_BUILD=\"${SILEX_BUILD:-3}\""),
+                && script.contains("SILEX_BUILD=\"${SILEX_BUILD:-4}\""),
             "default application build version"
         )
         let packageManifest = try String(
@@ -1669,7 +1711,7 @@ let tests: [HarnessTest] = [
         )
         try requireEqual(
             helperInfo["CFBundleVersion"] as? String,
-            "3",
+            "4",
             "source helper build"
         )
     }

@@ -6,7 +6,7 @@ DIST="$ROOT/dist"
 APP="$DIST/Silex.app"
 CONTENTS="$APP/Contents"
 SILEX_VERSION="${SILEX_VERSION:-1.0.1}"
-SILEX_BUILD="${SILEX_BUILD:-3}"
+SILEX_BUILD="${SILEX_BUILD:-4}"
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:--}"
 
 if [[ "${1:-}" == "--adhoc" ]]; then

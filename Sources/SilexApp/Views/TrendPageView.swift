@@ -56,9 +56,12 @@ struct TrendPageView: View {
     let group: TrendGroup
 
     @State private var focusedMetric: Metric?
+    @State private var hoveredPoint: ChartPoint?
+    @State private var hoveredPointPosition: CGPoint?
     private let analyzer = HistoryAnalyzer()
     private let seriesBuilder = ChartSeriesBuilder()
     private let domainBuilder = ChartAxisDomainBuilder()
+    private let hoverResolver = ChartHoverResolver()
 
     var body: some View {
         VStack(spacing: 10) {
@@ -97,6 +100,8 @@ struct TrendPageView: View {
                         color: metric.chartColor,
                         isSelected: focusedMetric == metric
                     ) {
+                        hoveredPoint = nil
+                        hoveredPointPosition = nil
                         focusedMetric = focusedMetric == metric ? nil : metric
                     }
                 }
@@ -212,6 +217,15 @@ struct TrendPageView: View {
                         .foregroundStyle(metricSeries.metric.chartColor)
                         .symbolSize(28)
                     }
+
+                    if hoveredPoint == point {
+                        PointMark(
+                            x: .value("Time", point.date),
+                            y: .value("Value", point.value)
+                        )
+                        .foregroundStyle(metricSeries.metric.chartColor)
+                        .symbolSize(64)
+                    }
                 }
             }
         }
@@ -224,19 +238,35 @@ struct TrendPageView: View {
         }
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        SpatialTapGesture()
-                            .onEnded { value in
-                                focusNearest(
-                                    location: value.location,
+                ZStack(alignment: .topLeading) {
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .onContinuousHover { phase in
+                            switch phase {
+                            case .active(let location):
+                                updateHoveredPoint(
+                                    location: location,
                                     proxy: proxy,
                                     geometry: geometry
                                 )
+                            case .ended:
+                                hoveredPoint = nil
+                                hoveredPointPosition = nil
                             }
-                    )
+                        }
+
+                    if let hoveredPoint, let hoveredPointPosition {
+                        pointTooltip(for: hoveredPoint)
+                            .position(
+                                tooltipPosition(
+                                    near: hoveredPointPosition,
+                                    in: geometry.size
+                                )
+                            )
+                            .allowsHitTesting(false)
+                    }
+                }
             }
         }
         .frame(minHeight: 230)
@@ -248,25 +278,27 @@ struct TrendPageView: View {
         }
     }
 
-    private func focusNearest(
+    private func updateHoveredPoint(
         location: CGPoint,
         proxy: ChartProxy,
         geometry: GeometryProxy
     ) {
         guard let plotFrame = proxy.plotFrame else {
-            focusedMetric = nil
+            hoveredPoint = nil
+            hoveredPointPosition = nil
             return
         }
         let frame = geometry[plotFrame]
         guard frame.contains(location) else {
-            focusedMetric = nil
+            hoveredPoint = nil
+            hoveredPointPosition = nil
             return
         }
         let local = CGPoint(
             x: location.x - frame.minX,
             y: location.y - frame.minY
         )
-        var nearest: (metric: Metric, distance: CGFloat)?
+        var candidates: [ChartHoverCandidate] = []
 
         for metricSeries in preparedSeries {
             for point in metricSeries.points {
@@ -276,18 +308,101 @@ struct TrendPageView: View {
                 else {
                     continue
                 }
-                let distance = hypot(x - local.x, y - local.y)
-                if nearest == nil || distance < nearest!.distance {
-                    nearest = (metricSeries.metric, distance)
-                }
+                candidates.append(
+                    ChartHoverCandidate(
+                        point: point,
+                        x: Double(x),
+                        y: Double(y)
+                    )
+                )
             }
         }
 
-        guard let nearest, nearest.distance < 24 else {
-            focusedMetric = nil
+        guard let point = hoverResolver.nearestPoint(
+            to: ChartHoverLocation(
+                x: Double(local.x),
+                y: Double(local.y)
+            ),
+            candidates: candidates,
+            maximumDistance: 18
+        ) else {
+            hoveredPoint = nil
+            hoveredPointPosition = nil
             return
         }
-        focusedMetric = focusedMetric == nearest.metric ? nil : nearest.metric
+
+        hoveredPoint = point
+        if
+            let x = proxy.position(forX: point.date),
+            let y = proxy.position(forY: point.value)
+        {
+            hoveredPointPosition = CGPoint(
+                x: frame.minX + x,
+                y: frame.minY + y
+            )
+        } else {
+            hoveredPointPosition = nil
+        }
+    }
+
+    private func pointTooltip(for point: ChartPoint) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(point.metric.chartColor)
+                    .frame(width: 7, height: 7)
+                Text(localized(point.metric.titleKey, locale: model.locale))
+                    .font(.caption.bold())
+            }
+            Text(tooltipValue(for: point))
+                .font(.caption)
+                .foregroundStyle(SilexTheme.text)
+            Text(
+                point.date.formatted(
+                    .dateTime
+                        .year()
+                        .month()
+                        .day()
+                        .hour()
+                        .minute()
+                        .second()
+                        .locale(model.locale)
+                )
+            )
+            .font(.caption2)
+            .foregroundStyle(SilexTheme.muted)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(.regularMaterial)
+        .overlay {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(SilexTheme.line, lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+    }
+
+    private func tooltipPosition(near point: CGPoint, in size: CGSize) -> CGPoint {
+        let horizontalOffset: CGFloat = point.x > size.width - 180 ? -92 : 92
+        let preferred = CGPoint(x: point.x + horizontalOffset, y: point.y - 42)
+        return CGPoint(
+            x: min(max(preferred.x, 90), max(90, size.width - 90)),
+            y: min(max(preferred.y, 34), max(34, size.height - 34))
+        )
+    }
+
+    private func tooltipValue(for point: ChartPoint) -> String {
+        switch point.metric {
+        case .dataRead, .dataWritten:
+            format(point.value, unit: "TB", digits: 2)
+        case .temperature:
+            format(point.value, unit: "°C", digits: 0)
+        case .availableSpare, .availableSpareThreshold, .percentageUsed:
+            format(point.value, unit: "%", digits: 0)
+        default:
+            format(point.value, unit: "", digits: 0)
+        }
     }
 
     private func cardValues(

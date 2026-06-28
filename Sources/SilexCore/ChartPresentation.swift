@@ -30,6 +30,64 @@ public struct ChartMetricSeries: Equatable, Identifiable, Sendable {
     }
 }
 
+public struct ChartHoverLocation: Equatable, Sendable {
+    public let x: Double
+    public let y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+}
+
+public struct ChartHoverCandidate: Equatable, Sendable {
+    public let point: ChartPoint
+    public let x: Double
+    public let y: Double
+
+    public init(point: ChartPoint, x: Double, y: Double) {
+        self.point = point
+        self.x = x
+        self.y = y
+    }
+}
+
+public struct ChartHoverResolver: Sendable {
+    public init() {}
+
+    public func nearestPoint(
+        to location: ChartHoverLocation,
+        candidates: [ChartHoverCandidate],
+        maximumDistance: Double
+    ) -> ChartPoint? {
+        guard maximumDistance >= 0, maximumDistance.isFinite else {
+            return nil
+        }
+
+        var nearest: (point: ChartPoint, squaredDistance: Double)?
+        let maximumSquaredDistance = maximumDistance * maximumDistance
+
+        for candidate in candidates {
+            guard candidate.x.isFinite, candidate.y.isFinite else {
+                continue
+            }
+
+            let dx = candidate.x - location.x
+            let dy = candidate.y - location.y
+            let squaredDistance = dx * dx + dy * dy
+
+            guard squaredDistance <= maximumSquaredDistance else {
+                continue
+            }
+            if nearest == nil || squaredDistance < nearest!.squaredDistance {
+                nearest = (candidate.point, squaredDistance)
+            }
+        }
+
+        return nearest?.point
+    }
+}
+
 public struct ChartSeriesBuilder: Sendable {
     private let analyzer = HistoryAnalyzer()
 

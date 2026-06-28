@@ -60,15 +60,15 @@ swift build --disable-sandbox
 Create and ad-hoc sign a local `Silex.app` for testing (placed in `dist/`):
 
 ```bash
-SILEX_VERSION=1.0.1 SILEX_BUILD=3 zsh Scripts/build-app.sh --adhoc
+SILEX_VERSION=1.0.1 SILEX_BUILD=4 zsh Scripts/build-app.sh --adhoc
 ```
 
 ## Build the personal installer
 
-Build version `1.0.1`, build number `3`:
+Build version `1.0.1`, build number `4`:
 
 ```bash
-Scripts/build-installer.sh 1.0.1 3
+Scripts/build-installer.sh 1.0.1 4
 ```
 
 The command generates and verifies:
@@ -152,7 +152,7 @@ certificates, use Developer ID signing:
 ```bash
 APP_SIGN_IDENTITY="Developer ID Application: Example" \
 INSTALLER_SIGN_IDENTITY="Developer ID Installer: Example" \
-Scripts/build-installer.sh 1.0.1 3
+Scripts/build-installer.sh 1.0.1 4
 ```
 
 To notarize, first store credentials in a Keychain profile, then add:
